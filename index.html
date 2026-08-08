@@ -49,9 +49,14 @@
   #bar div{height:100%;transition:width .18s linear;}
   #netState{position:fixed;top:calc(env(safe-area-inset-top) + 12px);right:12px;font-size:10px;font-weight:800;
     letter-spacing:.1em;text-transform:uppercase;color:var(--accent);opacity:.75;}
-  #mute{position:fixed;left:calc(env(safe-area-inset-left) + 16px);bottom:calc(env(safe-area-inset-bottom) + 32px);
-    width:48px;height:48px;border-radius:50%;border:0;background:var(--panel);color:var(--ink);font-size:18px;
-    box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12);z-index:5;}
+  #lowleft{position:fixed;left:calc(env(safe-area-inset-left) + 16px);
+    bottom:calc(env(safe-area-inset-bottom) + 32px);display:flex;align-items:center;gap:9px;z-index:5;}
+  #mute{width:48px;height:48px;border-radius:50%;border:0;background:var(--panel);color:var(--ink);
+    font-size:18px;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12);padding:0;}
+  #quit{height:48px;padding:0 16px;border-radius:99px;border:0;background:var(--panel);color:var(--ink-dim);
+    font:inherit;font-size:12px;font-weight:800;letter-spacing:.06em;
+    box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12);}
+  #quit.armed{background:rgba(190,18,60,.55);color:#fff;box-shadow:inset 0 0 0 1.5px rgba(251,113,133,.7);}
   .board{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:6px;margin:0 0 18px;}
   .row{display:flex;align-items:center;gap:10px;padding:9px 10px;font-size:14px;}
   .row.me{background:rgba(255,255,255,.07);border-radius:11px;}
@@ -126,6 +131,12 @@
   .modetag{margin-top:9px;text-align:center;font-size:10px;font-weight:800;letter-spacing:.16em;
     text-transform:uppercase;color:var(--accent);opacity:.9;}
   .ident{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 16px;}
+  .joinrow{display:flex;gap:8px;margin:0 0 10px;}
+  .joinrow input{flex:1;min-width:0;padding:15px 12px;border-radius:16px;border:1px solid var(--line);
+    background:rgba(255,255,255,.05);color:var(--ink);font:inherit;font-size:15px;font-weight:800;
+    text-align:center;letter-spacing:.14em;text-transform:uppercase;outline:none;}
+  .joinrow input:focus{border-color:rgba(147,197,253,.6);}
+  .joinrow button{flex:0 0 auto;width:auto;padding:15px 18px;margin:0;}
   .ident input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);
     background:rgba(255,255,255,.05);color:var(--ink);font:inherit;font-size:15px;font-weight:700;
     text-align:center;outline:none;}
@@ -220,7 +231,10 @@
   <div class="starhud hidden" id="starHud">🌟 4.0s</div>
 </div>
 <div id="netState"></div>
-<button id="mute">🔊</button>
+<div id="lowleft">
+  <button id="mute">🔊</button>
+  <button id="quit">Quitter</button>
+</div>
 
 <div id="skills">
   <button id="ball" class="skill small">
@@ -268,7 +282,12 @@
       <div class="pnext" id="pNext">&nbsp;</div>
     </div>
     <button class="play" id="soloBtn">Jouer</button>
-    <button class="ghost" id="hostBtn">Avec un ami</button>
+    <button class="ghost" id="hostBtn">Créer une partie</button>
+    <div class="joinrow">
+      <input id="codeInput" maxlength="8" placeholder="Code d'invitation" autocomplete="off"
+             spellcheck="false" autocapitalize="characters">
+      <button class="ghost" id="joinBtn" disabled>Rejoindre</button>
+    </div>
     <button class="ghost tiny" id="helpBtn">Comment jouer</button>
     <p class="status" id="startStatus"></p>
   </div>
@@ -307,6 +326,7 @@
     <p class="codelabel">Code de la partie</p>
     <div class="code" id="hostCode">········</div>
     <div class="linkbox" id="hostLink">Préparation du lien…</div>
+    <p class="meta">Jusqu'à 5 joueurs. Les places libres sont tenues par des bots.</p>
     <button class="ghost" id="copyBtn">Copier le lien</button>
     <p class="status" id="hostStatus">Création de la partie…</p>
     <button class="play" id="launchBtn" disabled>Démarrer</button>
@@ -362,6 +382,8 @@ const HEAD_R     = 1.0;            // rayon de la tête, en cases
 const PT_SPACING = 0.9;            // espacement des points mémorisés du tracé
 const BODY_PTS   = 9;              // longueur du bout de queue dans sa propre zone
 const SNAP_EVERY = 2;              // snapshot réseau tous les N pas
+const INTERP_MS  = 130;            // retard d'affichage qui absorbe la gigue réseau
+const BUF_MAX    = 12;             // états conservés pour interpoler
 const RESYNC_EVERY = 70;           // resynchro complète des tracés
 
 const INVIS_MS   = 5000;
@@ -455,7 +477,9 @@ const profile = {
   total: store.get('total', 0),
   best:  store.get('best', 0),
 };
-let remote = { name:'', skin:'fraise' };
+// un emplacement par slot : {name, skin} si un humain l'occupe, null sinon
+let players = [null, null, null, null, null];
+const MAX_PLAYERS = 5;
 
 function cleanName(v){
   return String(v || '').replace(/[^\p{L}\p{N} _\-.]/gu, '').trim().slice(0, 12);
@@ -576,7 +600,11 @@ let lastTime = 0, acc = 0, hudAcc = 0, stepCount = 0, snapCount = 0;
 let mode = 'solo';
 let myId = 0;
 let peer = null, conn = null;
+let conns = [];                       // côté hôte : une entrée par invité
+let evQueue = [[], [], [], [], []];   // messages à router vers chaque invité
 let lastSnapAt = 0;
+let stateBuf = [];                 // file des états reçus, pour un rendu retardé et lisse
+let guestAlpha = 1;
 let msgWindow = 0, msgCount = 0;
 
 // suivi de ce qui a déjà été envoyé à l'invité, pour n'envoyer que les nouveaux points
@@ -938,35 +966,41 @@ function setSlotColor(i, hex, rgb, label, pat, soft){
   SNAKES_DEF[i].soft = !!soft;          // motif plus discret pour les bots
 }
 
-function applyIdentities(humans){
+function applyIdentities(){
   const used = [], usedPat = [];
-  const mine = SKINS.find(s => s.id === profile.skin) || SKINS[0];
-  setSlotColor(myId, mine.hex, mine.rgb, profile.name || 'Toi', mine.pat, false);
-  used.push(mine.hex); usedPat.push(mine.pat);
 
-  const otherId = myId === 0 ? 1 : 0;
-  if (humans > 1){
-    const rs = SKINS.find(s => s.id === remote.skin) || SKINS[1];
-    let hex = rs.hex, rgb = rs.rgb;
+  // les humains d'abord, chacun avec son skin
+  for (let i = 0; i < SNAKES_DEF.length; i++){
+    const pl = players[i];
+    if (!pl) continue;
+    const sk = SKINS.find(k => k.id === pl.skin) || SKINS[0];
+    let hex = sk.hex, rgb = sk.rgb, pat = sk.pat;
     if (used.includes(hex)){
       const alt = BOT_POOL.find(c => !used.includes(c.hex)) || BOT_POOL[0];
       hex = alt.hex; rgb = alt.rgb;
     }
-    let pat = rs.pat;
     if (usedPat.includes(pat)) pat = PAT_ALL.find(x => !usedPat.includes(x)) || pat;
-    setSlotColor(otherId, hex, rgb, remote.name || 'Ton ami', pat, false);
+    const nom = i === myId ? (pl.name || 'Toi') : (pl.name || 'Joueur ' + (i + 1));
+    setSlotColor(i, hex, rgb, nom, pat, false);
     used.push(hex); usedPat.push(pat);
   }
+
+  // les slots restants sont tenus par des bots
   for (let i = 0; i < SNAKES_DEF.length; i++){
-    if (i === myId || (humans > 1 && i === otherId)) continue;
+    if (players[i]) continue;
     const c = BOT_POOL.find(k => !used.includes(k.hex)) || BOT_POOL[0];
-    // le bot hérite du motif du skin qui porte sa couleur
     const sk = SKINS.find(k => k.hex === c.hex);
     let pat = sk ? sk.pat : null;
     if (!pat || usedPat.includes(pat)) pat = PAT_ALL.find(x => !usedPat.includes(x)) || PAT_ALL[i % PAT_ALL.length];
     setSlotColor(i, c.hex, c.rgb, BOT_NAMES[i % BOT_NAMES.length], pat, true);
     used.push(c.hex); usedPat.push(pat);
   }
+}
+
+function nbHumains(){
+  let n = 0;
+  for (const p of players) if (p) n++;
+  return n;
 }
 
 function buildAmbient(){
@@ -1380,7 +1414,7 @@ function makeSnake(id, human){
     isHuman: human,
     x:0, y:0, px:0, py:0,
     cx:0, cy:0,
-    ang:0, wantAng:0,
+    ang:0, wantAng:0, pang:0, hasSnap:false,
     alive:false, eliminated:false,
     trailCells: [],
     trailPts: [],
@@ -1928,7 +1962,7 @@ function applyEvent(type, a, b){
 // destine l'événement au bon joueur : local, ou mis en file pour l'invité
 function notify(s, type, a, b){
   if (s.id === myId) applyEvent(type, a, b || 0);
-  else if (mode === 'host' && s.id === 1) pendingEv.push([type, a, b || 0]);
+  else if (mode === 'host' && players[s.id]) evQueue[s.id].push([type, a, b || 0]);
 }
 
 function showBigMsg(t1, t2, col){
@@ -2213,6 +2247,7 @@ function stepSnake(s){
   const spd = SPEED * (boost ? STAR_SPD : 1) * (dash ? DASH_SPD : 1) * grow;
   const turn = TURN * (boost ? STAR_TRN : 1) * (dash ? 1.08 : 1);
 
+  s.pang = s.ang;
   const d = angDiff(s.wantAng, s.ang);
   const maxT = turn * DT;
   s.ang += Math.max(-maxT, Math.min(maxT, d));
@@ -2345,52 +2380,65 @@ function decodeTerritory(arr){
 /* ==========================================================================
    RÉSEAU — hôte
    ========================================================================== */
+function broadcast(msg){
+  for (const c of conns){
+    if (c && c.open){ try { c.send(msg); } catch(e){} }
+  }
+}
+
 function sendSnapshot(){
-  if (!conn || !conn.open) return;
+  if (!conns.length) return;
   snapCount++;
   const forceFull = (snapCount % RESYNC_EVERY === 0);
-  const g = snakes[1];
 
-  const n = snakes.map((s, i) => {
-    let full = 0, tp;
-    if (forceFull || sentVer[i] !== s.trailVer || sentCnt[i] > s.trailPts.length){
-      full = 1;
-      tp = s.trailPts.slice(0);
-      sentVer[i] = s.trailVer;
-      sentCnt[i] = s.trailPts.length;
-    } else {
-      tp = s.trailPts.slice(sentCnt[i]);
-      sentCnt[i] = s.trailPts.length;
-    }
-    return {
-      x:r2(s.x), y:r2(s.y), px:r2(s.px), py:r2(s.py), an:r2(s.ang),
-      a: s.alive ? 1 : 0,
-      el: s.eliminated ? 1 : 0,
-      i: isInvisible(s) ? 1 : 0,
-      st: isStarred(s) ? 1 : 0,
-      bo: isBoosted(s) ? 1 : 0,
-      tv: s.trailVer, tc: s.trailCount, f: full, tp,
-      bp: s.bodyPts,
-    };
-  });
+  const terrain = (netTerrDirty && stepCount % TERR_EVERY === 0) ? encodeTerritory() : null;
+  if (terrain) netTerrDirty = false;
 
-  const msg = {
-    t:'s', n,
-    b: balls.map(b => ({ x:r2(b.x), y:r2(b.y), px:r2(b.px), py:r2(b.py), c:b.id })),
-    sp: stars.map(st => [r2(st.x), r2(st.y)]),
-    gm: gems.map(g => [r2(g.x), r2(g.y)]),
-    bm: bombs.map(b => [r2(b.x), r2(b.y)]),
-    pd: pending.map(q => [q.kind === 'star' ? 0 : 1, r2(q.x), r2(q.y), Math.max(0, q.at - now())]),
-    pl: planets.length ? planets.map(q => [r2(q.x), r2(q.y), q.owner, r2(q.rot), r2(Math.hypot(q.vx, q.vy))]) : undefined,
-    sk: sparks.length ? sparks.map(q => [r2(q.x), r2(q.y)]) : undefined,
-    dz: dashes.map(q => [r2(q.x), r2(q.y), DASH_COLORS.indexOf(q.c)]),
-    sh: shells.length ? shells.map(q => [r2(q.x), r2(q.y)]) : undefined,
-    vo: volcanoes.length ? volcanoes.map(q => [r2(q.x), r2(q.y), Math.round(q.eruptAt - now())]) : undefined,
-    fx: pendingFx.length ? pendingFx.slice(0) : undefined,
-    md: roundMode,
-    bt: bountyId,
-    zr: roundMode === 'br' ? r2(zoneRadius()) : undefined,
-    cd: [
+  for (const c of conns){
+    if (!c || !c.open) continue;
+    if (!c._sv){ c._sv = new Int32Array(MAX_PLAYERS).fill(-1); c._sc = new Int32Array(MAX_PLAYERS); }
+    const g = snakes[c.slot];
+
+    const n = snakes.map((s, i) => {
+      let full = 0, tp;
+      if (forceFull || c._sv[i] !== s.trailVer || c._sc[i] > s.trailPts.length){
+        full = 1;
+        tp = s.trailPts.slice(0);
+        c._sv[i] = s.trailVer;
+        c._sc[i] = s.trailPts.length;
+      } else {
+        tp = s.trailPts.slice(c._sc[i]);
+        c._sc[i] = s.trailPts.length;
+      }
+      return {
+        x:r2(s.x), y:r2(s.y), px:r2(s.px), py:r2(s.py), an:r2(s.ang),
+        a: s.alive ? 1 : 0,
+        el: s.eliminated ? 1 : 0,
+        i: isInvisible(s) ? 1 : 0,
+        st: isStarred(s) ? 1 : 0,
+        bo: isBoosted(s) ? 1 : 0,
+        tv: s.trailVer, tc: s.trailCount, f: full, tp,
+        bp: s.bodyPts,
+      };
+    });
+
+    const msg = {
+      t:'s', n,
+      b: balls.map(b => ({ x:r2(b.x), y:r2(b.y), px:r2(b.px), py:r2(b.py), c:b.id })),
+      sp: stars.map(st => [r2(st.x), r2(st.y)]),
+      gm: gems.map(g => [r2(g.x), r2(g.y)]),
+      bm: bombs.map(b => [r2(b.x), r2(b.y)]),
+      pd: pending.map(q => [q.kind === 'star' ? 0 : 1, r2(q.x), r2(q.y), Math.max(0, q.at - now())]),
+      pl: planets.length ? planets.map(q => [r2(q.x), r2(q.y), q.owner, r2(q.rot), r2(Math.hypot(q.vx, q.vy))]) : undefined,
+      sk: sparks.length ? sparks.map(q => [r2(q.x), r2(q.y)]) : undefined,
+      dz: dashes.map(q => [r2(q.x), r2(q.y), DASH_COLORS.indexOf(q.c)]),
+      sh: shells.length ? shells.map(q => [r2(q.x), r2(q.y)]) : undefined,
+      vo: volcanoes.length ? volcanoes.map(q => [r2(q.x), r2(q.y), Math.round(q.eruptAt - now())]) : undefined,
+      fx: pendingFx.length ? pendingFx.slice(0) : undefined,
+      md: roundMode,
+      bt: bountyId,
+      zr: roundMode === 'br' ? r2(zoneRadius()) : undefined,
+      cd: [
       Math.max(0, g.skillReadyAt - now()),
       Math.max(0, g.ballReadyAt  - now()),
       Math.max(0, g.invisUntil   - now()),
@@ -2399,32 +2447,30 @@ function sendSnapshot(){
       g.capStreak || 0,
       Math.max(0, g.trappedUntil - now()),
     ],
-    ev: pendingEv.length ? pendingEv.slice(0) : undefined,
-    sc: Array.from(scores),
-    gs: [stats[1].k, stats[1].c, r2(stats[1].m), stats[1].g],
-    tl: Math.max(0, roundEndsAt - now()),
-  };
-  if (netTerrDirty && stepCount % TERR_EVERY === 0){
-    msg.g = encodeTerritory();
-    netTerrDirty = false;
+      ev: evQueue[c.slot].length ? evQueue[c.slot].slice(0) : undefined,
+      sc: Array.from(scores),
+      gs: [stats[c.slot].k, stats[c.slot].c, r2(stats[c.slot].m), stats[c.slot].g],
+      tl: Math.max(0, roundEndsAt - now()),
+    };
+    if (terrain) msg.g = terrain;
+    try { c.send(msg); } catch(e){}
+    evQueue[c.slot].length = 0;
   }
-  try { conn.send(msg); } catch(e){}
   pendingFx.length = 0;
-  pendingEv.length = 0;
 }
 
-function handleGuestData(d){
+function handleGuestData(d, slot){
   const t = now();
   if (t - msgWindow > 1000){ msgWindow = t; msgCount = 0; }
   if (++msgCount > MAX_MSG_SEC) return;
 
   if (!d || typeof d !== 'object') return;
   if (d.t === 'hi'){
-    remote.name = cleanName(d.n);
-    remote.skin = (SKINS.find(x => x.id === d.s) || SKINS[1]).id;
+    players[slot] = { name: cleanName(d.n), skin: (SKINS.find(x => x.id === d.s) || SKINS[1]).id };
+    majLobby();
     return;
   }
-  const g = snakes[1];
+  const g = snakes[slot];
   if (!g || !g.isHuman || !g.alive) return;
   if (d.t === 'a'){
     const a = Number(d.a);
@@ -2453,7 +2499,6 @@ function applySnapshot(d){
 
   for (let i = 0; i < snakes.length && i < d.n.length; i++){
     const s = snakes[i], n = d.n[i];
-    s.px = n.px; s.py = n.py;
     s.x = n.x; s.y = n.y;
     s.ang = n.an;
     s.alive = !!n.a;
@@ -2522,6 +2567,8 @@ function applySnapshot(d){
   if (!wasElim && me.eliminated) onLocalEliminated();
 
   lastSnapAt = now();
+  stateBuf.push({ t: lastSnapAt, p: d.n.map(n => [n.x, n.y, n.an]) });
+  while (stateBuf.length > BUF_MAX) stateBuf.shift();
   if (!running){ running = true; hideAllOverlays(); }
 }
 
@@ -2618,6 +2665,26 @@ function strokeFaded(pts, S, hx, hy, rgb, width, base, tailF){
   ctx.moveTo(pts[(n - 1) * 2] * S, pts[(n - 1) * 2 + 1] * S);
   ctx.lineTo(hx * S, hy * S);
   ctx.stroke();
+}
+
+// Rendu volontairement retardé : on affiche l'état du jeu tel qu'il était il y a
+// INTERP_MS, en interpolant entre les deux états reçus qui encadrent cet instant.
+// Un paquet en retard ne fige donc plus l'image.
+function guestInterp(){
+  if (stateBuf.length < 2){ guestAlpha = 1; return; }
+  const cible = now() - INTERP_MS;
+  let i = stateBuf.length - 2;
+  for (let k = 0; k < stateBuf.length - 1; k++){
+    if (stateBuf[k].t <= cible && cible <= stateBuf[k + 1].t){ i = k; break; }
+  }
+  const A = stateBuf[i], B = stateBuf[i + 1];
+  const span = Math.max(1, B.t - A.t);
+  guestAlpha = Math.max(0, Math.min(1, (cible - A.t) / span));
+  for (let k = 0; k < snakes.length && k < A.p.length && k < B.p.length; k++){
+    const s = snakes[k];
+    s.px = A.p[k][0]; s.py = A.p[k][1]; s.pang = A.p[k][2];
+    s.x  = B.p[k][0]; s.y  = B.p[k][1]; s.ang  = B.p[k][2];
+  }
 }
 
 function render(alpha){
@@ -3051,6 +3118,7 @@ function render(alpha){
 
     const sx = (s.px + (s.x - s.px) * alpha) * S;
     const sy = (s.py + (s.y - s.py) * alpha) * S;
+    const ang = (s.pang == null) ? s.ang : s.pang + angDiff(s.ang, s.pang) * alpha;
     const r = HEAD_R * S;
 
     if (isStarred(s)){
@@ -3118,7 +3186,7 @@ function render(alpha){
     }
 
     // yeux orientés vers la direction
-    const ca = Math.cos(s.ang), sa = Math.sin(s.ang);
+    const ca = Math.cos(ang), sa = Math.sin(ang);
     const ex = -sa * r * 0.42, ey = ca * r * 0.42;
     const fx = ca * r * 0.34,  fy = sa * r * 0.34;
     for (const sign of [1, -1]){
@@ -3435,6 +3503,7 @@ const gameoverEl = document.getElementById('gameover');
 const spectateEl = document.getElementById('spectate');
 const specNameEl = document.getElementById('specName');
 const skillsEl = document.getElementById('skills');
+const quitBtn = document.getElementById('quit');
 const recLineEl = document.getElementById('recLine');
 const modeInfoEl = document.getElementById('modeInfo');
 const scoreLabelEl = document.getElementById('scoreLabel');
@@ -3766,13 +3835,14 @@ function finishProfile(){
 /* ==========================================================================
    CYCLE DE PARTIE
    ========================================================================== */
-function resetGame(humans){
+function resetGame(){
   owner.fill(-1);
   trailOwner.fill(-1);
   counts.fill(0);
   scores.fill(0);
   balls = [];
   floaters = [];
+  stateBuf = [];
   stars = [];
   gems = [];
   bombs = [];
@@ -3809,7 +3879,7 @@ function resetGame(humans){
   sentVer.fill(-1); sentCnt.fill(0);
 
   snakes = [];
-  for (let i = 0; i < SNAKES_DEF.length; i++) snakes.push(makeSnake(i, i < humans));
+  for (let i = 0; i < SNAKES_DEF.length; i++) snakes.push(makeSnake(i, !!players[i]));
 
   const cx = GRID / 2, cy = GRID / 2, R = GRID * 0.31;
   for (let i = 0; i < snakes.length; i++){
@@ -3976,13 +4046,13 @@ function applyMode(m){
     (MODES.find(x => x.id === m) || MODES[0]).name + ' · ' + roundMap.name;
 }
 
-function beginRound(humans, m, mapId){
+function beginRound(m, mapId){
   stopAttract();
   applyMap(mapId);
   applyMode(m);
-  applyIdentities(humans);
+  applyIdentities();
   resetStats();
-  resetGame(humans);
+  resetGame();
   hideAllOverlays();
   running = false;
   showRoulette(m, () => {
@@ -4020,21 +4090,24 @@ function startAttract(){
   mode = 'solo'; myId = 0;
   applyMap(randomMap());
   applyMode('normal');
-  applyIdentities(1);
+  players = [null, null, null, null, null];
+  applyIdentities();
   resetStats();
-  resetGame(0);                    // aucun humain : tout le monde joue tout seul
+  resetGame();                     // aucun humain : tout le monde joue tout seul
   roundEndsAt = now() + ROUND_MS;
   running = true;
   lastTime = now(); acc = 0;
   hudEl.classList.add('hidden');
   skillsEl.style.display = 'none';
   netEl.textContent = '';
+  quitBtn.style.display = 'none';
 }
 
 function stopAttract(){
   attract = false;
   hudEl.classList.remove('hidden');
   skillsEl.style.display = '';
+  quitBtn.style.display = '';
 }
 function randomMap(){ return MAPS[(Math.random() * MAPS.length) | 0].id; }
 
@@ -4043,7 +4116,8 @@ function startSolo(){
   closePeer();
   mode = 'solo'; myId = 0;
   netEl.textContent = '';
-  beginRound(1, randomMode(), randomMap());
+  players = [{ name: profile.name, skin: profile.skin }, null, null, null, null];
+  beginRound(randomMode(), randomMap());
 }
 
 function startHostedGame(){
@@ -4051,10 +4125,9 @@ function startHostedGame(){
   mode = 'host'; myId = 0;
   netEl.textContent = 'Hôte';
   const m = randomMode(), mp = randomMap();
-  if (conn && conn.open){
-    conn.send({ t:'go', md:m, mp, hn: profile.name, hs: profile.skin });
-  }
-  beginRound(conn && conn.open ? 2 : 1, m, mp);
+  players[0] = { name: profile.name, skin: profile.skin };
+  broadcast({ t:'go', md:m, mp, pl: players });
+  beginRound(m, mp);
 }
 
 /* ==========================================================================
@@ -4074,11 +4147,51 @@ function randomCode(){
   return c;
 }
 
+function trouverSlot(){
+  for (let i = 1; i < MAX_PLAYERS; i++) if (!players[i]) return i;
+  return -1;
+}
+
+function majLobby(){
+  const n = conns.filter(c => c && c.open).length;
+  launchBtn.disabled = n === 0;
+  if (n === 0){
+    hostStatus.textContent = 'En attente de tes amis…';
+    hostStatus.className = 'status';
+  } else {
+    const noms = conns.filter(c => c && c.open)
+                      .map(c => (players[c.slot] && players[c.slot].name) || 'Joueur ' + (c.slot + 1));
+    hostStatus.textContent = n + (n > 1 ? ' amis connectés : ' : ' ami connecté : ') + noms.join(', ')
+                           + ' · ' + (MAX_PLAYERS - 1 - n) + ' place' + (MAX_PLAYERS - 2 - n > 0 ? 's' : '') + ' libre'
+                           + (MAX_PLAYERS - 2 - n > 0 ? 's' : '');
+    hostStatus.className = 'status ok';
+  }
+  netEl.textContent = mode === 'host' ? ('Hôte · ' + (n + 1) + ' joueurs') : netEl.textContent;
+}
+
 function closePeer(){
+  for (const c of conns){ try { c.close(); } catch(e){} }
+  conns = [];
   try { if (conn) conn.close(); } catch(e){}
   try { if (peer) peer.destroy(); } catch(e){}
   conn = null; peer = null;
+  for (let i = 1; i < MAX_PLAYERS; i++) players[i] = null;
 }
+
+// le salon survit à un passage par une autre application :
+// on se raccroche au serveur de mise en relation au retour
+function reprendreConnexion(){
+  if (!peer || peer.destroyed) return;
+  if (peer.disconnected){
+    try { peer.reconnect(); } catch(e){}
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden){
+    reprendreConnexion();
+    if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+  }
+});
 
 function startHosting(retry){
   if (!peerReady()){
@@ -4094,6 +4207,8 @@ function startHosting(retry){
   hostStatus.className = 'status';
   hostStatus.textContent = 'Création de la partie…';
   launchBtn.disabled = true;
+  conns = [];
+  for (let i = 1; i < MAX_PLAYERS; i++) players[i] = null;
 
   peer = new Peer(PEER_PREFIX + code, { debug: 0 });
 
@@ -4104,33 +4219,41 @@ function startHosting(retry){
     document.getElementById('hostLink').textContent = url
       || "Page ouverte en local : ton ami doit ouvrir le même fichier en ligne, puis entrer le code.";
     document.getElementById('hostLink').dataset.url = url || '';
-    hostStatus.textContent = 'En attente de ton ami…';
+    majLobby();
   });
 
   peer.on('connection', c => {
-    if (conn && conn.open){ try { c.close(); } catch(e){} return; }
-    conn = c;
+    const libre = trouverSlot();
+    if (libre < 0){ try { c.close(); } catch(e){} return; }   // partie complète
+    c.slot = libre;
+    players[libre] = { name:'', skin:'fraise' };
+    conns.push(c);
+
     c.on('open', () => {
-      sentVer.fill(-1); sentCnt.fill(0);
-      hostStatus.textContent = 'Ton ami est connecté.';
-      hostStatus.className = 'status ok';
-      launchBtn.disabled = false;
+      c._sv = null; c._sc = null;
+      c.send({ t:'slot', id: c.slot });
       if (running && mode === 'host'){
-        snakes[1].isHuman = true;
-        c.send({ t:'go' });
+        snakes[c.slot].isHuman = true;
+        c.send({ t:'go', md: roundMode, mp: roundMap.id, pl: players });
       }
+      majLobby();
     });
-    c.on('data', handleGuestData);
+    c.on('data', d => handleGuestData(d, c.slot));
     c.on('close', () => {
-      if (running && mode === 'host' && snakes[1]) snakes[1].isHuman = false;
-      conn = null;
-      netEl.textContent = 'Ami déconnecté';
-      hostStatus.textContent = 'Ton ami a quitté.';
-      hostStatus.className = 'status err';
-      launchBtn.disabled = true;
+      const i = conns.indexOf(c);
+      if (i >= 0) conns.splice(i, 1);
+      players[c.slot] = null;
+      if (running && mode === 'host' && snakes[c.slot]) snakes[c.slot].isHuman = false;
+      majLobby();
     });
+    c.on('error', () => {});
   });
 
+  peer.on('disconnected', () => {
+    hostStatus.textContent = 'Reconnexion…';
+    hostStatus.className = 'status';
+    setTimeout(reprendreConnexion, 400);
+  });
   peer.on('error', e => {
     if (e && e.type === 'unavailable-id' && !retry){ startHosting(true); return; }
     hostStatus.textContent = 'Erreur réseau : ' + (e && e.type ? e.type : 'inconnue');
@@ -4146,7 +4269,9 @@ function joinGame(code){
   }
   closePeer();
   mode = 'guest'; myId = 1;
-  resetGame(2);
+  players = [{ name:'', skin:'menthe' }, { name: profile.name, skin: profile.skin }, null, null, null];
+  applyIdentities();
+  resetGame();
   hideAllOverlays();
   document.getElementById('joinScreen').classList.remove('hidden');
   document.getElementById('joinCode').textContent = code;
@@ -4154,6 +4279,7 @@ function joinGame(code){
   joinStatus.textContent = 'Connexion…';
 
   peer = new Peer({ debug: 0 });
+  peer.on('disconnected', () => { setTimeout(reprendreConnexion, 400); });
   peer.on('open', () => {
     conn = peer.connect(PEER_PREFIX + code, { reliable: true });
     conn.on('open', () => {
@@ -4165,16 +4291,19 @@ function joinGame(code){
     conn.on('data', d => {
       if (!d || typeof d !== 'object') return;
       if (d.t === 's') applySnapshot(d);
+      else if (d.t === 'slot'){
+        myId = Math.max(0, Math.min(MAX_PLAYERS - 1, d.id | 0));
+        netEl.textContent = 'Joueur ' + (myId + 1);
+      }
       else if (d.t === 'go'){
         initAudio();
-        remote.name = cleanName(d.hn);
-        remote.skin = (SKINS.find(x => x.id === d.hs) || SKINS[0]).id;
+        if (Array.isArray(d.pl)) players = d.pl.map(q => q ? { name: cleanName(q.name), skin: (SKINS.find(x => x.id === q.skin) || SKINS[0]).id } : null);
         guestZoneR = null;
         applyMap(d.mp || 'space');
         applyMode(d.md || 'normal');
-        applyIdentities(2);
+        applyIdentities();
         resetStats();
-        resetGame(2);
+        resetGame();
         running = false;
         hideAllOverlays();
         showRoulette(d.md || 'normal', () => { startMusic(); });
@@ -4211,6 +4340,61 @@ function joinGame(code){
    BOUTONS
    ========================================================================== */
 document.getElementById('soloBtn').addEventListener('click', startSolo);
+// rejoindre directement avec un code saisi
+const codeInput = document.getElementById('codeInput');
+const joinBtn = document.getElementById('joinBtn');
+
+function codeSaisi(){
+  return codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+}
+codeInput.addEventListener('input', () => {
+  const c = codeSaisi();
+  codeInput.value = c;
+  joinBtn.disabled = c.length !== 8;
+});
+codeInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && codeSaisi().length === 8) joinBtn.click();
+});
+joinBtn.addEventListener('click', () => {
+  const c = codeSaisi();
+  if (c.length !== 8) return;
+  initAudio();
+  stopAttract();
+  running = false;
+  joinGame(c);
+});
+
+// quitter la partie en cours, avec confirmation
+let quitArme = -1e9;   // jamais armé au départ, sinon un appui immédiat après
+                       // le chargement quitterait sans confirmation
+
+function quitterPartie(){
+  quitArme = -1e9;
+  quitBtn.textContent = 'Quitter';
+  quitBtn.classList.remove('armed');
+  running = false;
+  gameEnded = false;
+  stopMusic();
+  closePeer();
+  history.replaceState(null, '', location.pathname);
+  hideAllOverlays();
+  document.getElementById('startScreen').classList.remove('hidden');
+  startAttract();
+}
+
+quitBtn.addEventListener('click', () => {
+  if (now() - quitArme < 3000){ quitterPartie(); return; }
+  quitArme = now();
+  quitBtn.textContent = 'Confirmer ?';
+  quitBtn.classList.add('armed');
+  setTimeout(() => {
+    if (now() - quitArme >= 2900){
+      quitBtn.textContent = 'Quitter';
+      quitBtn.classList.remove('armed');
+    }
+  }, 3050);
+});
+
 document.getElementById('helpBtn').addEventListener('click', () => {
   document.getElementById('helpScreen').classList.remove('hidden');
 });
@@ -4300,9 +4484,13 @@ function loop(t){
   scheduleMusic();
 
   if (snakes.length){
-    const alpha = (mode === 'guest')
-      ? Math.min((now() - lastSnapAt) / (STEP_MS * SNAP_EVERY), 1)
-      : (running ? Math.min(acc / STEP_MS, 1) : 1);
+    let alpha;
+    if (mode === 'guest'){
+      guestInterp();
+      alpha = guestAlpha;
+    } else {
+      alpha = running ? Math.min(acc / STEP_MS, 1) : 1;
+    }
     render(alpha);
   }
 }
@@ -4316,7 +4504,7 @@ refreshMeta();
 const params = new URLSearchParams(location.search);
 const roomParam = (params.get('r') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 if (roomParam.length === 8){
-  applyMap(randomMap()); applyIdentities(1); resetStats(); resetGame(1);
+  applyMap(randomMap()); applyIdentities(); resetStats(); resetGame();
   joinGame(roomParam);
 } else {
   startAttract();
