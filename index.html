@@ -14,6 +14,7 @@
     --ink:#eaf0ff;
     --ink-dim:#8d9ac0;
     --me:#4ade80;
+    --accent:#a5b4fc;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);
@@ -28,7 +29,9 @@
   .block.center{align-items:center;}
   .block.right{align-items:flex-end;}
   .score{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;
-         color:var(--me);text-shadow:0 2px 12px rgba(74,222,128,.3);}
+         color:var(--me);text-shadow:0 2px 12px rgba(74,222,128,.3);
+         transform-origin:left center;transition:transform .13s ease-out;}
+  .score.pop{transform:scale(1.16);}
   .timer{font-size:23px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
   .timer.low{color:#fb7185;}
   .pct{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1;
@@ -45,7 +48,7 @@
        box-shadow:inset 0 0 0 1px var(--line);}
   #bar div{height:100%;transition:width .18s linear;}
   #netState{position:fixed;top:calc(env(safe-area-inset-top) + 12px);right:12px;font-size:10px;font-weight:800;
-    letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);opacity:.8;}
+    letter-spacing:.1em;text-transform:uppercase;color:var(--accent);opacity:.75;}
   #mute{position:fixed;left:calc(env(safe-area-inset-left) + 16px);bottom:calc(env(safe-area-inset-bottom) + 32px);
     width:48px;height:48px;border-radius:50%;border:0;background:var(--panel);color:var(--ink);font-size:18px;
     box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12);z-index:5;}
@@ -76,10 +79,19 @@
   #ball.ready{box-shadow:0 6px 24px rgba(0,0,0,.45), inset 0 0 0 1.5px rgba(253,186,116,.65), 0 0 22px rgba(251,146,60,.25);}
   #ball.ready .txt{color:#fdba74;}
 
-  /* ---------- Bandeau réapparition ---------- */
+  /* ---------- Bandeaux ---------- */
   #respawn{position:fixed;left:0;right:0;top:38%;text-align:center;pointer-events:none;z-index:8;}
   #respawn .r1{font-size:30px;font-weight:800;letter-spacing:-.02em;}
   #respawn .r2{font-size:13px;color:var(--ink-dim);margin-top:4px;}
+  #gameover{position:fixed;left:0;right:0;top:33%;text-align:center;pointer-events:none;z-index:9;}
+  #gameover .go1{font-size:46px;font-weight:800;letter-spacing:-.035em;color:#fb7185;
+    text-shadow:0 4px 34px rgba(251,113,133,.55);}
+  #gameover .go2{font-size:13px;color:var(--ink-dim);margin-top:8px;}
+  #spectate{position:fixed;left:50%;transform:translateX(-50%);
+    bottom:calc(env(safe-area-inset-bottom) + 34px);z-index:6;pointer-events:none;white-space:nowrap;
+    background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:10px 18px;
+    font-size:12px;color:var(--ink-dim);box-shadow:0 6px 20px rgba(0,0,0,.4);}
+  #spectate span{color:var(--ink);font-weight:800;}
 
   /* ---------- Overlays ---------- */
   .overlay{position:fixed;inset:0;display:grid;place-items:center;padding:24px;overflow:auto;
@@ -109,6 +121,73 @@
   .status{font-size:13px;color:var(--ink-dim);margin:0 0 18px;min-height:19px;}
   .status.ok{color:var(--me);}
   .status.err{color:#fb7185;}
+  .rname{font-size:clamp(30px,10vw,44px);font-weight:800;letter-spacing:-.03em;line-height:1.05;
+    margin:10px 0 6px;color:#fdba74;text-shadow:0 4px 30px rgba(251,146,60,.45);}
+  .modetag{margin-top:9px;text-align:center;font-size:10px;font-weight:800;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--accent);opacity:.9;}
+  .ident{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 16px;}
+  .ident input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,.05);color:var(--ink);font:inherit;font-size:15px;font-weight:700;
+    text-align:center;outline:none;}
+  .ident input:focus{border-color:rgba(147,197,253,.6);}
+  .skins{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin:14px 0 4px;}
+  .skinbtn{width:34px;height:34px;border-radius:50%;border:2px solid transparent;padding:0;
+    font-size:12px;line-height:1;color:rgba(0,0,0,.55);display:grid;place-items:center;}
+  .skinbtn.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.16);}
+  .skinbtn.lock{filter:grayscale(.85) brightness(.6);}
+  .meta{font-size:11px;color:var(--ink-dim);margin:8px 0 0;letter-spacing:.04em;min-height:15px;}
+  .statbox{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;}
+  .stat{flex:1 1 calc(50% - 8px);background:var(--panel);border:1px solid var(--line);border-radius:13px;
+    padding:11px 8px;text-align:center;}
+  .stat b{display:block;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .stat span{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);}
+  .record{color:#fde047;font-weight:800;font-size:13px;margin:0 0 14px;}
+  #toasts{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top) + 196px);
+    display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:8;}
+  .toast{background:rgba(12,17,30,.88);border:1px solid var(--line);border-radius:99px;
+    padding:8px 16px;font-size:13px;font-weight:800;white-space:nowrap;max-width:92vw;
+    overflow:hidden;text-overflow:ellipsis;box-shadow:0 6px 20px rgba(0,0,0,.45);
+    animation:tin .18s ease;}
+  .toast.out{opacity:0;transform:translateY(-8px);transition:opacity .35s ease, transform .35s ease;}
+  @keyframes tin{from{opacity:0;transform:translateY(10px) scale(.93);}to{opacity:1;transform:none;}}
+  .modeinfo{margin-top:6px;text-align:center;font-size:12px;font-weight:800;letter-spacing:.03em;}
+  .recline{margin-top:5px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-dim);}
+  .recline.beat{color:#fde047;}
+  .rank.dbl,.timer.dbl{color:#fde047;}
+  #bigmsg{position:fixed;left:0;right:0;top:29%;text-align:center;pointer-events:none;z-index:9;}
+  #bigmsg .b1{font-size:clamp(26px,9vw,38px);font-weight:800;letter-spacing:-.025em;
+    text-shadow:0 4px 30px rgba(0,0,0,.6);}
+  #bigmsg .b2{font-size:12px;color:var(--ink-dim);margin-top:6px;letter-spacing:.06em;}
+  /* ---------- Menus, style cartoon ---------- */
+  .overlay.light{background:rgba(7,10,18,.42);backdrop-filter:blur(7px);}
+  .overlay.light .card, #helpScreen .card, #endScreen .card{
+    background:rgba(11,16,28,.95);border:2px solid rgba(255,255,255,.10);border-radius:26px;
+    padding:20px 18px 14px;box-shadow:0 20px 55px rgba(0,0,0,.6);}
+  .title2{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:0 0 14px;}
+  .preview{display:block;width:100%;height:74px;margin:6px 0 14px;}
+  button.play{border-bottom:4px solid rgba(0,0,0,.32);}
+  button.play:active{transform:translateY(2px);border-bottom-width:2px;}
+  button.ghost{border-bottom:3px solid rgba(0,0,0,.32);}
+  button.ghost:active{transform:translateY(2px);border-bottom-width:1px;}
+  button.tiny{padding:11px;font-size:13px;color:var(--ink-dim);}
+  .progress{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:12px 14px;margin:0 0 16px;}
+  .prow{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;
+    color:var(--ink-dim);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+  .prow b{font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0;}
+  .pbar{height:9px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 7px;
+    box-shadow:inset 0 0 0 1px var(--line);}
+  .pbar div{height:100%;width:0;border-radius:99px;transition:width .3s ease;}
+  .pnext{font-size:11px;color:var(--ink-dim);text-align:center;font-weight:700;letter-spacing:.04em;}
+  .winner{font-size:clamp(24px,8vw,34px);font-weight:800;letter-spacing:-.03em;margin:0 0 14px;}
+  .podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:0 0 18px;}
+  .pod{flex:1 1 0;max-width:104px;text-align:center;}
+  .pname{font-size:12px;font-weight:800;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pbarv{border-radius:12px 12px 0 0;border:2px solid rgba(0,0,0,.45);border-bottom:0;
+    display:grid;place-items:center;font-size:20px;font-weight:800;color:rgba(0,0,0,.55);}
+  .pscore{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;
+    background:var(--panel);border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;padding:5px 2px;}
   .hidden{display:none !important;}
 </style>
 </head>
@@ -120,7 +199,7 @@
   <div class="topline">
     <div class="block">
       <div class="score" id="score">0</div>
-      <div class="pct-label">points</div>
+      <div class="pct-label" id="scoreLabel">points</div>
     </div>
     <div class="spacer"></div>
     <div class="block center">
@@ -134,6 +213,9 @@
     </div>
   </div>
   <div id="bar"></div>
+  <div class="modetag" id="modeTag">Normal</div>
+  <div class="modeinfo hidden" id="modeInfo"></div>
+  <div class="recline hidden" id="recLine"></div>
   <div class="mult hidden" id="mult">×1.0</div>
   <div class="starhud hidden" id="starHud">🌟 4.0s</div>
 </div>
@@ -156,28 +238,70 @@
   <div class="r2" id="respawnTxt">Réapparition…</div>
 </div>
 
-<!-- Accueil -->
-<div class="overlay" id="startScreen">
+<div id="toasts"></div>
+
+<div id="bigmsg" class="hidden">
+  <div class="b1" id="bigMsg1"></div>
+  <div class="b2" id="bigMsg2"></div>
+</div>
+
+<div id="gameover" class="hidden">
+  <div class="go1">Game Over</div>
+  <div class="go2">Plus de place pour réapparaître</div>
+</div>
+
+<div id="spectate" class="hidden">Spectateur · <span id="specName"></span> — touche l'écran pour changer</div>
+
+<div class="overlay light" id="startScreen">
   <div class="card">
     <h1 class="title">Snake <span>Territoire</span></h1>
-    <p class="sub">Sors de ta zone, boucle un tracé, récupère le terrain.</p>
-    <div class="rules">
-      <p><span class="key">🎯</span><span>Reviens sur <b>ta couleur</b> pour capturer tout ce que ton tracé entoure.</span></p>
-      <p><span class="key">✖️</span><span>Plus ton tracé est long, plus le <b>multiplicateur</b> monte (jusqu'à ×3). Les grandes boucles rapportent gros.</span></p>
-      <p><span class="key">⏱️</span><span>Manche de <b>3 minutes</b>. Le meilleur score gagne, pas le plus gros territoire.</span></p>
-      <p><span class="key">⚔️</span><span>Coupe le <b>tracé</b> d'un autre snake : il est mangé et <b>toute sa zone devient la tienne</b>.</span></p>
-      <p><span class="key">🛡️</span><span>Rien ne tue au contact : ton tracé se traverse, et face au mur tu t'arrêtes jusqu'à ce que tu tournes.</span></p>
-      <p><span class="key">👁</span><span><b>Invisibilité 5 s</b> : intouchable, tu captures toujours — mais tu ne peux tuer personne.</span></p>
-      <p><span class="key">🌟</span><span><b>Étoile</b> : 4 s de vitesse doublée, impossible à manger, et tu manges toujours. L'invisibilité est coupée pendant ce temps.</span></p>
-      <p><span class="key">●</span><span><b>Boule</b> : un tir d'une case droit devant. Elle touche une tête, le snake est mangé.</span></p>
+    <canvas id="preview" class="preview"></canvas>
+    <div class="ident">
+      <input id="nameInput" maxlength="12" placeholder="Ton pseudo" autocomplete="off" spellcheck="false">
+      <div class="skins" id="skinRow"></div>
+      <p class="meta" id="metaLine">&nbsp;</p>
     </div>
-    <button class="play" id="soloBtn">Jouer solo</button>
-    <button class="ghost" id="hostBtn">Jouer avec un ami</button>
+    <div class="progress">
+      <div class="prow"><span>Record</span><b id="pRecord">0</b></div>
+      <div class="prow"><span>Total</span><b id="pTotal">0</b></div>
+      <div class="pbar"><div id="pFill"></div></div>
+      <div class="pnext" id="pNext">&nbsp;</div>
+    </div>
+    <button class="play" id="soloBtn">Jouer</button>
+    <button class="ghost" id="hostBtn">Avec un ami</button>
+    <button class="ghost tiny" id="helpBtn">Comment jouer</button>
     <p class="status" id="startStatus"></p>
   </div>
 </div>
 
-<!-- Salon hôte -->
+<div class="overlay hidden" id="helpScreen">
+  <div class="card">
+    <h1 class="title2">Comment jouer</h1>
+    <div class="rules">
+      <p><span class="key">🕹️</span><span>Glisse le doigt : ton snake tourne vers cette direction, <b>à 360°</b>.</span></p>
+      <p><span class="key">🎯</span><span>Reviens sur <b>ta couleur</b> pour capturer tout ce que ton tracé entoure.</span></p>
+      <p><span class="key">✖️</span><span>Plus ton tracé est long, plus le <b>multiplicateur</b> monte (jusqu'à ×3).</span></p>
+      <p><span class="key">⏱️</span><span>Manche de <b>3 minutes</b>, points doublés sur la dernière.</span></p>
+      <p><span class="key">⚔️</span><span>Coupe le <b>tracé</b> d'un autre snake : il est mangé et <b>sa zone devient la tienne</b>.</span></p>
+      <p><span class="key">🛡️</span><span>Rien ne tue au contact : ton tracé se traverse, et face au mur tu t'arrêtes.</span></p>
+      <p><span class="key">🌟</span><span><b>Étoile</b> : 4 s très rapide et immangeable, mais l'invisibilité est coupée.</span></p>
+      <p><span class="key">💎</span><span><b>Gemme</b> : des points immédiats et sans risque, mais peu à la fois.</span></p>
+      <p><span class="key">💣</span><span><b>Bombe</b> : efface tout le terrain autour d'elle. Idéal contre celui qui mène.</span></p>
+      <p><span class="key">👁</span><span><b>Invisibilité 5 s</b> : intouchable, tu captures toujours — mais tu ne tues personne.</span></p>
+      <p><span class="key">●</span><span><b>Boule</b> : un tir droit devant. Elle touche une tête, le snake est mangé.</span></p>
+      <p><span class="key">🪐</span><span><b>Espace</b> : des planètes se poussent, prennent ta couleur, peignent leur passage et écrasent qui les reçoit lancées.</span></p>
+      <p><span class="key">⚡</span><span><b>Orage</b> : ramasse un éclair, trois zones à ta couleur jaillissent autour de toi.</span></p>
+      <p><span class="key">🐚</span><span><b>Océan</b> : un coquillage t'avale et te bloque deux secondes. Tu deviens une cible facile.</span></p>
+      <p><span class="key">🌋</span><span><b>Volcan</b> : des cônes fixes grondent puis crachent. Toucher la lave tue.</span></p>
+      <p><span class="key">🎯</span><span><b>Contrat</b> : une prime sur un snake. Le manger rapporte triple, puis la prime passe sur toi.</span></p>
+      <p><span class="key">🌫️</span><span><b>Brouillard</b> : tu ne vois qu'autour de toi et sur ton territoire. La minimap devient vitale.</span></p>
+      <p><span class="key">🏃</span><span><b>Croissance</b> : plus ton territoire est grand, plus tu vas vite — et plus tu tournes large.</span></p>
+      <p><span class="key">🎰</span><span>Le mode est tiré au sort : normal, <b>battle royale</b> ou <b>dernier survivant</b>.</span></p>
+    </div>
+    <button class="play" id="helpClose">Compris</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="hostScreen">
   <div class="card">
     <p class="codelabel">Code de la partie</p>
@@ -190,7 +314,6 @@
   </div>
 </div>
 
-<!-- Salon invité -->
 <div class="overlay hidden" id="joinScreen">
   <div class="card">
     <h1 class="title">Snake <span>Territoire</span></h1>
@@ -201,13 +324,23 @@
   </div>
 </div>
 
-<!-- Fin de partie (solo) -->
+<div class="overlay hidden" id="rouletteScreen">
+  <div class="card">
+    <p class="codelabel">Mode de la manche</p>
+    <div class="rname" id="rouletteName">Normal</div>
+    <p class="sub" id="rouletteDesc">&nbsp;</p>
+  </div>
+</div>
+
 <div class="overlay hidden" id="endScreen">
   <div class="card">
+    <div class="winner" id="winner">&nbsp;</div>
+    <div class="podium" id="podium"></div>
     <div class="big" id="endPct">0</div>
     <p class="sub" id="endMsg">points</p>
+    <div class="statbox" id="statBox"></div>
     <div class="board" id="board"></div>
-    <button class="play" id="againBtn">Rejouer</button>
+    <button class="play" id="againBtn">Revanche</button>
     <button class="ghost" id="menuBtn">Menu</button>
   </div>
 </div>
@@ -218,26 +351,170 @@
    ========================================================================== */
 const GRID       = 108;
 const TOTAL      = GRID * GRID;
-const STEP_MS    = 82;
+const STEP_MS    = 40;             // 25 pas de simulation par seconde
+const DT         = STEP_MS / 1000;
+const SPEED      = 12.5;           // cases par seconde
+const TURN       = 5.2;            // radians par seconde (rayon de virage ≈ 2,4 cases)
+const STAR_SPD   = 1.85;           // multiplicateur de vitesse sous étoile
+const STAR_TRN   = 1.15;
+const TRAIL_W    = 1.35;           // largeur du tracé, en cases
+const HEAD_R     = 1.0;            // rayon de la tête, en cases
+const PT_SPACING = 0.9;            // espacement des points mémorisés du tracé
+const BODY_PTS   = 9;              // longueur du bout de queue dans sa propre zone
+const SNAP_EVERY = 2;              // snapshot réseau tous les N pas
+const RESYNC_EVERY = 70;           // resynchro complète des tracés
+
 const INVIS_MS   = 5000;
 const COOL_MS    = 14000;
 const BALL_COOL  = 9000;
-const BALL_SPEED = 2;
-const BALL_RANGE = 24;
+const BALL_SPEED = 26;             // cases par seconde
+const BALL_RANGE = 26;             // portée en cases
+const BALL_HIT   = 1.15;           // rayon de collision de la boule
+
 const SPAWN_HALF = 2;
 const RESPAWN_MS = 2600;
-const ROUND_MS   = 180000;  // manche de 3 minutes
-const STAR_MS       = 4000;    // durée du bonus étoile
-const STAR_SPAWN_MIN= 9000;    // délai mini entre deux apparitions
-const STAR_SPAWN_MAX= 17000;   // délai maxi
-const STAR_LIFE     = 22000;   // durée de vie d'une étoile non ramassée
-const STAR_MAX      = 2;       // étoiles présentes simultanément
-const MULT_MAX   = 3;       // multiplicateur maximum
-const MULT_DIV   = 45;      // longueur de tracé pour +1 au multiplicateur
+const RESPAWN_GRACE = 3000;
+const ROUND_MS   = 180000;
+const MULT_MAX   = 3;
+const MULT_DIV   = 45;
+
+const STAR_MS        = 4000;
+const STAR_SPAWN_MIN = 9000;
+const STAR_SPAWN_MAX = 17000;
+const STAR_LIFE      = 22000;
+const STAR_MAX       = 2;
+const STAR_HIT       = 1.4;
+
+const GEM_MIN   = 4000;
+const GEM_MAX   = 8500;
+const GEM_MAX_N = 5;
+const GEM_LIFE  = 30000;
+const GEM_HIT   = 1.3;
+const GEM_PTS   = 70;
+
+const BOMB_MIN   = 17000;
+const BOMB_MAX   = 29000;
+const BOMB_MAX_N = 2;
+const BOMB_LIFE  = 40000;
+const BOMB_HIT   = 1.4;
+const BOMB_R     = 10;      // rayon de terrain effacé
+
+const MODES = [
+  { id:'normal',     name:'Normal',            w:1, desc:'Trois minutes. Le meilleur score gagne.' },
+  { id:'br',         name:'Battle Royale',     w:2, desc:'La zone se resserre. Reste dedans.' },
+  { id:'last',       name:'Dernier survivant', w:2, desc:'Une seule vie. Pas de réapparition.' },
+  { id:'contrat',    name:'Contrat',           w:2, desc:'Une prime sur un snake. Le manger rapporte triple.' },
+  { id:'brouillard', name:'Brouillard',        w:2, desc:"Tu ne vois que ce qui t'entoure." },
+  { id:'croissance', name:'Croissance',        w:2, desc:'Plus ton territoire grandit, plus tu vas vite.' },
+];
+const BOUNTY_BONUS = 400;   // prime forfaitaire en mode Contrat
+const FOG_R        = 13;    // rayon de vision en mode Brouillard
+const GROW_MAX     = 0.6;   // gain de vitesse maximal en mode Croissance
+const MAPS = [
+  { id:'space', name:'Espace', bg:'#05060f', board:'#131b33', dot:'rgba(255,255,255,.06)',
+    accent:'#a5b4fc', panel:'rgba(21,24,52,.85)', line:'rgba(165,180,252,.16)' },
+  { id:'storm', name:'Orage',  bg:'#06070c', board:'#141a2b', dot:'rgba(255,255,255,.05)',
+    accent:'#bfdbfe', panel:'rgba(17,23,40,.85)', line:'rgba(191,219,254,.15)' },
+  { id:'ocean', name:'Océan',  bg:'#04121c', board:'#0e2436', dot:'rgba(125,211,252,.08)',
+    accent:'#67e8f9', panel:'rgba(9,33,47,.85)',  line:'rgba(103,232,249,.17)' },
+  { id:'lava',  name:'Volcan', bg:'#120607', board:'#2a1418', dot:'rgba(251,146,60,.09)',
+    accent:'#fb923c', panel:'rgba(38,18,20,.87)', line:'rgba(251,146,60,.17)' },
+];
+
+const SKINS = [
+  { id:'menthe',  name:'Menthe',    hex:'#4ade80', rgb:[74,222,128],  need:0,      pat:'pois'    },
+  { id:'fraise',  name:'Fraise',    hex:'#fb7185', rgb:[251,113,133], need:0,      pat:'rayures' },
+  { id:'ciel',    name:'Ciel',      hex:'#38bdf8', rgb:[56,189,248],  need:4000,   pat:'vagues'  },
+  { id:'or',      name:'Or',        hex:'#fbbf24', rgb:[251,191,36],  need:12000,  pat:'etoiles' },
+  { id:'amethys', name:'Améthyste', hex:'#a78bfa', rgb:[167,139,250], need:30000,  pat:'chevrons'},
+  { id:'corail',  name:'Corail',    hex:'#fb923c', rgb:[251,146,60],  need:60000,  pat:'ecailles'},
+  { id:'jade',    name:'Jade',      hex:'#2dd4bf', rgb:[45,212,191],  need:110000, pat:'grille'  },
+  { id:'neige',   name:'Neige',     hex:'#e2e8f0', rgb:[226,232,240], need:200000, pat:'losanges'},
+];
+
+const BOT_POOL = [
+  { hex:'#fbbf24', rgb:[251,191,36]  },
+  { hex:'#a78bfa', rgb:[167,139,250] },
+  { hex:'#38bdf8', rgb:[56,189,248]  },
+  { hex:'#fb7185', rgb:[251,113,133] },
+  { hex:'#4ade80', rgb:[74,222,128]  },
+  { hex:'#f472b6', rgb:[244,114,182] },
+  { hex:'#34d399', rgb:[52,211,153]  },
+];
+const BOT_NAMES = ['Zigzag', 'Bouclette', 'Ficelle', 'Virgule', 'Ressort'];
+const PAT_ALL = ['pois','rayures','vagues','etoiles','chevrons','ecailles','grille','losanges'];
+
+// stockage local, silencieux si le navigateur le refuse
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('snkt_' + k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem('snkt_' + k, JSON.stringify(v)); } catch(e){} },
+};
+const profile = {
+  name:  store.get('name', ''),
+  skin:  store.get('skin', 'menthe'),
+  total: store.get('total', 0),
+  best:  store.get('best', 0),
+};
+let remote = { name:'', skin:'fraise' };
+
+function cleanName(v){
+  return String(v || '').replace(/[^\p{L}\p{N} _\-.]/gu, '').trim().slice(0, 12);
+}
+
+const ZONE_START = GRID * 0.78;
+const ZONE_END   = 13;
+const ZONE_GRACE = 25000;   // délai avant que la zone commence à se resserrer
+const ZONE_DONE  = 15000;   // fin du rétrécissement, avant la fin de manche
+const OUTZONE_MS = 1500;    // temps toléré hors zone
+const LAST_BONUS = 1500;    // prime au dernier survivant
+// ---- objets propres à chaque carte ----
+const PLANET_N     = 3;      // espace : planètes poussables
+const PLANET_R     = 2.5;
+const PLANET_PUSH  = 17;     // vitesse donnée par une poussée
+const PLANET_FRIC  = 0.972;
+const PLANET_DEAD  = 5.5;    // au-delà, la planète écrase ce qu'elle touche
+
+const SPARK_MIN    = 8000;   // orage : éclairs à ramasser
+const SPARK_MAX    = 15000;
+const SPARK_MAX_N  = 2;
+const SPARK_LIFE   = 20000;
+const SPARK_HIT    = 1.35;
+const SPARK_ZONES  = 3;      // zones créées autour de soi
+
+const SHELL_MIN    = 6000;   // océan : coquillages qui avalent
+const SHELL_MAX    = 12000;
+const SHELL_MAX_N  = 4;
+const SHELL_LIFE   = 26000;
+const SHELL_HIT    = 1.25;
+const SHELL_MS     = 2000;   // durée du blocage
+
+const VOLC_N       = 4;      // volcan : cônes fixes qui crachent
+const LAVA_R       = 4.6;
+const ERUPT_MS     = 2000;
+const WARN_MS      = 1200;
+const REST_MIN     = 4500;
+const REST_MAX     = 8500;
+
+// pastilles de vitesse, présentes sur toutes les cartes
+const DASH_MAX     = 16;
+const DASH_INT_MIN = 900;
+const DASH_INT_MAX = 2200;
+const DASH_LIFE    = 45000;
+const DASH_HIT     = 1.2;
+const DASH_MS      = 550;    // durée du coup d'accélérateur
+const DASH_CAP     = 1500;   // durée cumulée maximale
+const DASH_SPD     = 1.5;    // gain de vitesse
+const DASH_COLORS  = [[248,113,133],[250,204,21],[74,222,128],[56,189,248],[192,132,252],[251,146,60]];
+
+const DOUBLE_MS  = 60000;   // points doublés sur la dernière minute
+const TELE_MS    = 3000;    // délai d'annonce avant l'apparition d'un bonus
 
 const PEER_PREFIX = 'snkterr-';
-const TERR_EVERY  = 3;      // synchro du terrain tous les N pas
-const MAX_MSG_SEC = 40;     // anti-flood invité
+const TERR_EVERY  = 6;
+const MAX_MSG_SEC = 60;
+
+const OUTLINE = '#0a0e1a';
+const TAIL_FADE = 0.38;   // luminosité de la queue ; 1 = couleur unie, sans dégradé
 
 const SNAKES_DEF = [
   { name:'Vert',   hex:'#4ade80', rgb:[74,222,128]  },
@@ -246,8 +523,7 @@ const SNAKES_DEF = [
   { name:'Violet', hex:'#a78bfa', rgb:[167,139,250] },
   { name:'Cyan',   hex:'#38bdf8', rgb:[56,189,248]  },
 ];
-
-const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+for (const d of SNAKES_DEF) d.fill = 'rgba(' + d.rgb.join(',') + ',0.40)';
 
 /* ==========================================================================
    ÉTAT GLOBAL
@@ -263,25 +539,57 @@ let snakes = [];
 let balls = [];
 let floaters = [];
 let stars = [];
-let nextStarAt = 0;
+let gems = [];
+let bombs = [];
+let fxs = [];
+let pendingFx = [];
+let nextStarAt = 0, nextGemAt = 0, nextBombAt = 0;
+let pending = [];                 // bonus annoncés, pas encore apparus
+let planets = [], sparks = [], shells = [], volcanoes = [];
+let dashes = [];
+let nextDashAt = 0;
+let nextSparkAt = 0, nextShellAt = 0;
+let bigMsgAt = 0, bigMsgTxt = '', bigMsgSub = '', bigMsgCol = '#fff';
+let doubleAnnounced = false, recordAnnounced = false, prevPending = 0;
+let pendingEv = [];
+let lastRank = 0;
+let attract = false;
+let scoreShown = 0, popT = 0;
+const STREAK_NAMES = ['', '', 'Double', 'Triple', 'Quadruple', 'Carnage'];
+let roundMode = 'normal';
+let bountyId = -1, prevBounty = -1;
+let roundMap = MAPS[0];
+let amb = [];
+let flashAt = -9999, nextFlash = 0;
+const stats = [];
+let guestZoneR = null;
+let lastClearR = 1e9;
 let roundEndsAt = 0;
+let eliminatedAt = 0;
+let spectateId = 0;
 let running = false;
 let gameEnded = false;
 let territoryDirty = true;
 let netTerrDirty = true;
-let lastTime = 0, acc = 0, hudAcc = 0, stepCount = 0;
+let lastTime = 0, acc = 0, hudAcc = 0, stepCount = 0, snapCount = 0;
 
-let mode = 'solo';          // 'solo' | 'host' | 'guest'
-let myId = 0;               // snake contrôlé par cet appareil
+let mode = 'solo';
+let myId = 0;
 let peer = null, conn = null;
 let lastSnapAt = 0;
 let msgWindow = 0, msgCount = 0;
+
+// suivi de ce qui a déjà été envoyé à l'invité, pour n'envoyer que les nouveaux points
+const sentVer = new Int32Array(SNAKES_DEF.length).fill(-1);
+const sentCnt = new Int32Array(SNAKES_DEF.length);
 
 /* ==========================================================================
    CANVAS
    ========================================================================== */
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+const fog = document.createElement('canvas');       // calque du mode Brouillard
+const fogCtx = fog.getContext('2d');
 let dpr = 1, VW = 0, VH = 0;
 
 function resize(){
@@ -292,6 +600,8 @@ function resize(){
   canvas.height = Math.round(VH * dpr);
   canvas.style.width  = VW + 'px';
   canvas.style.height = VH + 'px';
+  fog.width = canvas.width;
+  fog.height = canvas.height;
 }
 window.addEventListener('resize', resize);
 resize();
@@ -308,10 +618,482 @@ function rebuildTerritory(){
     const p = i * 4;
     if (o < 0){ d[p+3] = 0; continue; }
     const c = SNAKES_DEF[o].rgb;
-    d[p] = c[0]; d[p+1] = c[1]; d[p+2] = c[2]; d[p+3] = 108;
+    d[p] = c[0]; d[p+1] = c[1]; d[p+2] = c[2]; d[p+3] = 190;
   }
   terrCtx.putImageData(terrImg, 0, 0);
-  territoryDirty = false;
+  territoryDirty = false;   // sert désormais uniquement à la minimap
+}
+
+/* ==========================================================================
+   FORMES DE TERRITOIRE — contours lissés au lieu des cases carrées
+   ========================================================================== */
+const HAS_PATH2D = typeof Path2D !== 'undefined';
+let regionFx = [];          // remplissages de capture et dissolutions de zone
+let parts = [];             // particules
+let shakeAmt = 0, punch = 0;
+const maskBuf = new Uint8Array(GRID * GRID);
+let terrLoops = [];
+let terrPath = [];
+let shapesAt = 0;
+
+// on collecte les arêtes qui séparent le territoire du reste, puis on les
+// enchaîne bout à bout pour obtenir des boucles fermées (les trous compris)
+function traceMask(id){
+  const K = GRID + 2;
+  const starts = new Map();
+  const segs = [];
+  const add = (x1, y1, x2, y2) => {
+    const i = segs.length;
+    segs.push([x1, y1, x2, y2, false]);
+    const k = x1 * K + y1;
+    let a = starts.get(k);
+    if (!a){ a = []; starts.set(k, a); }
+    a.push(i);
+  };
+
+  for (let y = 0; y < GRID; y++){
+    const row = y * GRID;
+    for (let x = 0; x < GRID; x++){
+      if (owner[row + x] !== id) continue;
+      if (y === 0      || owner[row - GRID + x] !== id) add(x,   y,   x+1, y  );
+      if (x === GRID-1 || owner[row + x + 1]    !== id) add(x+1, y,   x+1, y+1);
+      if (y === GRID-1 || owner[row + GRID + x] !== id) add(x+1, y+1, x,   y+1);
+      if (x === 0      || owner[row + x - 1]    !== id) add(x,   y+1, x,   y  );
+    }
+  }
+
+  const loops = [];
+  for (let i = 0; i < segs.length; i++){
+    if (segs[i][4]) continue;
+    const loop = [];
+    let cur = i;
+    while (cur !== -1 && !segs[cur][4]){
+      segs[cur][4] = true;
+      loop.push([segs[cur][0], segs[cur][1]]);
+      const a = starts.get(segs[cur][2] * K + segs[cur][3]);
+      cur = -1;
+      if (a){ for (const j of a){ if (!segs[j][4]){ cur = j; break; } } }
+    }
+    if (loop.length >= 4) loops.push(loop);
+  }
+  return loops;
+}
+
+// même principe que traceMask, mais sur un ensemble de cases arbitraire
+function traceCellsMask(mask){
+  const K = GRID + 2;
+  const starts = new Map();
+  const segs = [];
+  const add = (x1, y1, x2, y2) => {
+    const i = segs.length;
+    segs.push([x1, y1, x2, y2, false]);
+    const k = x1 * K + y1;
+    let a = starts.get(k);
+    if (!a){ a = []; starts.set(k, a); }
+    a.push(i);
+  };
+  for (let y = 0; y < GRID; y++){
+    const row = y * GRID;
+    for (let x = 0; x < GRID; x++){
+      if (!mask[row + x]) continue;
+      if (y === 0      || !mask[row - GRID + x]) add(x,   y,   x+1, y  );
+      if (x === GRID-1 || !mask[row + x + 1])    add(x+1, y,   x+1, y+1);
+      if (y === GRID-1 || !mask[row + GRID + x]) add(x+1, y+1, x,   y+1);
+      if (x === 0      || !mask[row + x - 1])    add(x,   y+1, x,   y  );
+    }
+  }
+  const loops = [];
+  for (let i = 0; i < segs.length; i++){
+    if (segs[i][4]) continue;
+    const loop = [];
+    let cur = i;
+    while (cur !== -1 && !segs[cur][4]){
+      segs[cur][4] = true;
+      loop.push([segs[cur][0], segs[cur][1]]);
+      const a = starts.get(segs[cur][2] * K + segs[cur][3]);
+      cur = -1;
+      if (a){ for (const j of a){ if (!segs[j][4]){ cur = j; break; } } }
+    }
+    if (loop.length >= 4) loops.push(loop);
+  }
+  return loops;
+}
+
+// prépare l'animation d'une zone qui vient de changer de main
+function buildRegionFx(cells, rgb, kind){
+  if (!cells || cells.length < 6) return;
+  maskBuf.fill(0);
+  let sx = 0, sy = 0;
+  for (const i of cells){ maskBuf[i] = 1; sx += i % GRID; sy += (i / GRID) | 0; }
+  const cx = sx / cells.length + 0.5, cy = sy / cells.length + 0.5;
+  let r = 1;
+  for (const i of cells){
+    const d = Math.hypot((i % GRID) + 0.5 - cx, ((i / GRID) | 0) + 0.5 - cy);
+    if (d > r) r = d;
+  }
+  const loops = traceCellsMask(maskBuf).map(l => mergeCollinear(l));
+  if (!loops.length) return;
+  let path = null;
+  if (HAS_PATH2D){
+    path = new Path2D();
+    for (const pts of loops){
+      path.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) path.lineTo(pts[i][0], pts[i][1]);
+      path.closePath();
+    }
+  }
+  regionFx.push({ loops, path, cx, cy, r: r + 1, rgb, kind, t0: now() });
+  if (regionFx.length > 4) regionFx.shift();
+}
+
+function burstParts(x, y, rgb, n){
+  for (let k = 0; k < n; k++){
+    const a = Math.random() * 6.283;
+    const v = 4 + Math.random() * 14;
+    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+                 t0: now(), life: 550 + Math.random() * 420,
+                 sz: 0.28 + Math.random() * 0.5, rgb });
+  }
+  if (parts.length > 220) parts.splice(0, parts.length - 220);
+}
+
+// secousse et coup de zoom de la caméra
+function kick(sh, pu){
+  shakeAmt = Math.max(shakeAmt, sh);
+  punch = Math.max(punch, pu);
+}
+
+// on ne garde que les coins : les longues lignes droites n'ont pas besoin de points
+function mergeCollinear(loop){
+  const n = loop.length;
+  const out = [];
+  for (let i = 0; i < n; i++){
+    const p = loop[(i - 1 + n) % n], c = loop[i], q = loop[(i + 1) % n];
+    if ((c[0]-p[0]) * (q[1]-c[1]) - (c[1]-p[1]) * (q[0]-c[0]) !== 0) out.push(c);
+  }
+  return out.length >= 3 ? out : loop;
+}
+
+// un point posé sur le bord de l'arène ne doit jamais être arrondi,
+// sinon la zone se décolle de la périphérie
+function onArenaEdge(p){
+  return p[0] <= 0.001 || p[0] >= GRID - 0.001 || p[1] <= 0.001 || p[1] >= GRID - 0.001;
+}
+
+// arrondit les angles : c'est ce qui donne l'aspect pâte à modeler
+function chaikin(pts, iter){
+  let p = pts;
+  for (let k = 0; k < iter; k++){
+    const n = p.length;
+    if (n < 3) break;
+    const out = [];
+    for (let i = 0; i < n; i++){
+      const v = p[i], a = p[(i - 1 + n) % n], b = p[(i + 1) % n];
+      if (onArenaEdge(v)){ out.push(v); continue; }   // épinglé au bord, angle conservé
+      out.push([v[0]*0.75 + a[0]*0.25, v[1]*0.75 + a[1]*0.25]);
+      out.push([v[0]*0.75 + b[0]*0.25, v[1]*0.75 + b[1]*0.25]);
+    }
+    p = out;
+  }
+  for (const q of p){
+    q[0] = Math.min(GRID, Math.max(0, q[0]));
+    q[1] = Math.min(GRID, Math.max(0, q[1]));
+  }
+  return p;
+}
+
+function buildTerritoryShapes(){
+  terrLoops = [];
+  terrPath = [];
+  for (let id = 0; id < SNAKES_DEF.length; id++){
+    if (counts[id] === 0){ terrLoops.push(null); terrPath.push(null); continue; }
+    const raw = traceMask(id);
+    let corners = 0;
+    const simplified = raw.map(l => { const m = mergeCollinear(l); corners += m.length; return m; });
+    const iter = corners > 2200 ? 1 : 2;
+    const loops = simplified.map(l => chaikin(l, iter));
+    terrLoops.push(loops);
+    if (HAS_PATH2D){
+      const p = new Path2D();
+      for (const pts of loops){
+        p.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) p.lineTo(pts[i][0], pts[i][1]);
+        p.closePath();
+      }
+      terrPath.push(p);
+    } else {
+      terrPath.push(null);
+    }
+  }
+}
+
+/* ==========================================================================
+   IDENTITÉS, SKINS ET CARTES
+   ========================================================================== */
+// Motifs de territoire. Une tuile est peinte une fois puis répétée ;
+// on la remet à l'échelle pour qu'elle couvre 4 cases, quel que soit le zoom.
+const patCache = new Map();
+const tileCache = new Map();
+
+function patTile(patId, rgb, soft){
+  if (!patId || patId === 'plain') return null;
+  const key = patId + '|' + rgb.join(',') + (soft ? '|s' : '');
+  if (tileCache.has(key)) return tileCache.get(key);
+
+  const N = 64;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = N;
+  const c = cv.getContext('2d');
+  const base  = 'rgba(' + rgb.join(',') + ',0.34)';
+  const motif = 'rgba(' + rgb.join(',') + (soft ? ',0.56)' : ',0.78)');
+  const clair = 'rgba(255,255,255,0.14)';
+  c.fillStyle = base; c.fillRect(0, 0, N, N);
+  c.strokeStyle = motif; c.fillStyle = motif;
+  c.lineCap = 'round'; c.lineJoin = 'round';
+
+  if (patId === 'pois'){
+    for (const [x, y] of [[16,16],[48,16],[32,32],[16,48],[48,48]]){
+      c.beginPath(); c.arc(x, y, 6.5, 0, 6.2832); c.fill();
+    }
+  } else if (patId === 'rayures'){
+    c.lineWidth = 9;
+    for (let k = -N; k < N * 2; k += 22){
+      c.beginPath(); c.moveTo(k, -4); c.lineTo(k + N + 4, N + 4); c.stroke();
+    }
+  } else if (patId === 'vagues'){
+    c.lineWidth = 6;
+    for (let y = 8; y < N + 16; y += 22){
+      c.beginPath();
+      c.moveTo(-4, y);
+      for (let x = 0; x <= N + 4; x += 8) c.lineTo(x, y + Math.sin(x / 10) * 5);
+      c.stroke();
+    }
+  } else if (patId === 'etoiles'){
+    for (const [x, y, r] of [[16,16,8],[48,44,8],[36,10,5],[10,46,5]]){
+      c.beginPath();
+      for (let i = 0; i < 10; i++){
+        const a = -Math.PI/2 + i * Math.PI/5;
+        const rr = (i % 2 === 0) ? r : r * 0.44;
+        const px = x + Math.cos(a)*rr, py = y + Math.sin(a)*rr;
+        if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      }
+      c.closePath(); c.fill();
+    }
+  } else if (patId === 'chevrons'){
+    c.lineWidth = 7;
+    for (let y = -8; y < N + 16; y += 20){
+      c.beginPath();
+      c.moveTo(-2, y + 12); c.lineTo(N/2, y); c.lineTo(N + 2, y + 12);
+      c.stroke();
+    }
+  } else if (patId === 'ecailles'){
+    c.lineWidth = 5;
+    for (let y = 0; y <= N; y += 16){
+      for (let x = (y / 16 % 2) * 12; x <= N + 12; x += 24){
+        c.beginPath(); c.arc(x, y, 11, 0.15, Math.PI - 0.15); c.stroke();
+      }
+    }
+  } else if (patId === 'grille'){
+    c.lineWidth = 5;
+    for (let k = 8; k < N; k += 21){
+      c.beginPath(); c.moveTo(k, 0); c.lineTo(k, N); c.stroke();
+      c.beginPath(); c.moveTo(0, k); c.lineTo(N, k); c.stroke();
+    }
+  } else if (patId === 'losanges'){
+    for (const [x, y] of [[16,16],[48,16],[16,48],[48,48],[32,32]]){
+      c.save(); c.translate(x, y); c.rotate(Math.PI/4);
+      c.fillRect(-7, -7, 14, 14); c.restore();
+    }
+    c.fillStyle = clair;
+    c.fillRect(0, 30, N, 4);
+  }
+
+  tileCache.set(key, cv);
+  return cv;
+}
+
+// motif prêt à peindre, mis à l'échelle pour couvrir 4 cases
+function getPattern(patId, rgb, soft){
+  if (!patId || patId === 'plain') return null;
+  const key = patId + '|' + rgb.join(',') + (soft ? '|s' : '');
+  if (patCache.has(key)) return patCache.get(key);
+  const cv = patTile(patId, rgb, soft);
+  let pat = null;
+  try {
+    pat = ctx.createPattern(cv, 'repeat');
+    if (pat && pat.setTransform && typeof DOMMatrix !== 'undefined'){
+      pat.setTransform(new DOMMatrix([4 / 64, 0, 0, 4 / 64, 0, 0]));
+    } else { pat = null; }
+  } catch(e){ pat = null; }
+  patCache.set(key, pat);
+  return pat;
+}
+
+function setSlotColor(i, hex, rgb, label, pat, soft){
+  SNAKES_DEF[i].hex = hex;
+  SNAKES_DEF[i].rgb = rgb;
+  SNAKES_DEF[i].fill = 'rgba(' + rgb.join(',') + ',0.40)';
+  SNAKES_DEF[i].label = label;
+  SNAKES_DEF[i].pat = pat || null;
+  SNAKES_DEF[i].soft = !!soft;          // motif plus discret pour les bots
+}
+
+function applyIdentities(humans){
+  const used = [], usedPat = [];
+  const mine = SKINS.find(s => s.id === profile.skin) || SKINS[0];
+  setSlotColor(myId, mine.hex, mine.rgb, profile.name || 'Toi', mine.pat, false);
+  used.push(mine.hex); usedPat.push(mine.pat);
+
+  const otherId = myId === 0 ? 1 : 0;
+  if (humans > 1){
+    const rs = SKINS.find(s => s.id === remote.skin) || SKINS[1];
+    let hex = rs.hex, rgb = rs.rgb;
+    if (used.includes(hex)){
+      const alt = BOT_POOL.find(c => !used.includes(c.hex)) || BOT_POOL[0];
+      hex = alt.hex; rgb = alt.rgb;
+    }
+    let pat = rs.pat;
+    if (usedPat.includes(pat)) pat = PAT_ALL.find(x => !usedPat.includes(x)) || pat;
+    setSlotColor(otherId, hex, rgb, remote.name || 'Ton ami', pat, false);
+    used.push(hex); usedPat.push(pat);
+  }
+  for (let i = 0; i < SNAKES_DEF.length; i++){
+    if (i === myId || (humans > 1 && i === otherId)) continue;
+    const c = BOT_POOL.find(k => !used.includes(k.hex)) || BOT_POOL[0];
+    // le bot hérite du motif du skin qui porte sa couleur
+    const sk = SKINS.find(k => k.hex === c.hex);
+    let pat = sk ? sk.pat : null;
+    if (!pat || usedPat.includes(pat)) pat = PAT_ALL.find(x => !usedPat.includes(x)) || PAT_ALL[i % PAT_ALL.length];
+    setSlotColor(i, c.hex, c.rgb, BOT_NAMES[i % BOT_NAMES.length], pat, true);
+    used.push(c.hex); usedPat.push(pat);
+  }
+}
+
+function buildAmbient(){
+  amb = [];
+  const n = roundMap.id === 'space' ? 230 : 140;
+  for (let i = 0; i < n; i++){
+    amb.push({ x:Math.random(), y:Math.random(), r:0.5 + Math.random() * 1.9,
+               s:0.2 + Math.random(), p:Math.random() * 6.283 });
+  }
+  nextFlash = now() + 2500 + Math.random() * 5000;
+  flashAt = -9999;
+}
+
+function applyMap(id){
+  roundMap = MAPS.find(m => m.id === id) || MAPS[0];
+  const root = document.documentElement.style;
+  root.setProperty('--accent', roundMap.accent);
+  root.setProperty('--panel', roundMap.panel);
+  root.setProperty('--line', roundMap.line);
+  buildAmbient();
+  bolt = null;
+}
+
+function drawAmbient(){
+  const t = now();
+  const px = camX * camScale * 0.05, py = camY * camScale * 0.05;
+  const wrap = (v, m) => ((v % m) + m) % m;
+  ctx.save();
+  if (roundMap.id === 'space'){
+    ctx.fillStyle = '#dbeafe';
+    for (const a of amb){
+      ctx.globalAlpha = 0.2 + 0.6 * Math.abs(Math.sin(t / 900 * a.s + a.p));
+      ctx.fillRect(wrap(a.x * VW - px, VW), wrap(a.y * VH - py, VH), a.r, a.r);
+    }
+  } else if (roundMap.id === 'storm'){
+    ctx.globalAlpha = 0.14;
+    ctx.strokeStyle = '#93a4c9';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (const a of amb){
+      const x = wrap(a.x * VW - px, VW);
+      const y = wrap(a.y * VH + t * 0.55 * (0.6 + a.s) - py, VH);
+      ctx.moveTo(x, y); ctx.lineTo(x - 5, y + 18);
+    }
+    ctx.stroke();
+  } else if (roundMap.id === 'ocean'){
+    ctx.fillStyle = '#7dd3fc';
+    for (const a of amb){
+      ctx.globalAlpha = 0.15 + 0.32 * Math.abs(Math.sin(t / 1400 + a.p));
+      ctx.beginPath();
+      ctx.arc(wrap(a.x * VW - px, VW), wrap(a.y * VH - t * 0.013 * (0.4 + a.s) - py, VH),
+              a.r * 1.3, 0, 6.2832);
+      ctx.fill();
+    }
+  } else {
+    ctx.fillStyle = '#fb923c';
+    for (const a of amb){
+      ctx.globalAlpha = 0.18 + 0.4 * Math.abs(Math.sin(t / 1100 + a.p));
+      ctx.beginPath();
+      ctx.arc(wrap(a.x * VW + Math.sin(t / 900 + a.p) * 12 - px, VW),
+              wrap(a.y * VH - t * 0.022 * (0.5 + a.s) - py, VH),
+              a.r, 0, 6.2832);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// éclair de la carte Orage, dessiné par-dessus toute la scène
+function drawFlash(){
+  if (roundMap.id !== 'storm') return;
+  const age = now() - flashAt;
+  if (age >= 400) return;
+  const a = age < 60 ? age / 60 : Math.max(0, 1 - (age - 60) / 340);
+  if (bolt && age < 280){
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, a * 1.6);
+    ctx.shadowColor = 'rgba(191,219,254,.95)';
+    ctx.shadowBlur = 26;
+    ctx.strokeStyle = '#eff6ff';
+    ctx.lineWidth = 3.5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(bolt[0][0], bolt[0][1]);
+    for (let i = 1; i < bolt.length; i++) ctx.lineTo(bolt[i][0], bolt[i][1]);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.globalAlpha = a * 0.3;
+  ctx.fillStyle = '#dbeafe';
+  ctx.fillRect(0, 0, VW, VH);
+  ctx.globalAlpha = 1;
+}
+
+/* ==========================================================================
+   ÉCLAIR DE LA CARTE ORAGE
+   ========================================================================== */
+let bolt = null;
+
+function makeBolt(){
+  const pts = [];
+  let x = VW * (0.15 + Math.random() * 0.7);
+  for (let y = -20; y <= VH + 20; y += 26){
+    pts.push([x, y]);
+    x += (Math.random() - 0.5) * 60;
+  }
+  return pts;
+}
+
+function updateFlash(){
+  if (roundMap.id !== 'storm') return;
+  const t = now();
+  if (t > nextFlash){
+    flashAt = t;
+    nextFlash = t + 3500 + Math.random() * 7000;
+    bolt = makeBolt();
+    tone(58, 1.1, 'sawtooth', 0.16, 34, 0.12);
+    burst(0.5, 0.09);
+  }
+}
+
+/* ==========================================================================
+   STATISTIQUES DE MANCHE
+   ========================================================================== */
+function resetStats(){
+  stats.length = 0;
+  for (let i = 0; i < SNAKES_DEF.length; i++) stats.push({ k:0, c:0, m:1, g:0 });
 }
 
 /* ==========================================================================
@@ -322,7 +1104,16 @@ const inBounds = (x, y) => x >= 0 && y >= 0 && x < GRID && y < GRID;
 const now = () => performance.now();
 const isInvisible = s => now() < s.invisUntil;
 const isStarred = s => now() < s.starUntil;
+const isBoosted = s => now() < s.boostUntil;
 const isHost = () => mode === 'host' || mode === 'solo';
+const r2 = v => Math.round(v * 100) / 100;
+
+function angDiff(a, b){
+  let d = a - b;
+  while (d >  Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
 
 function setOwner(i, id){
   const prev = owner[i];
@@ -393,29 +1184,39 @@ function sfxCapture(mult){
   tone(base * 1.5,  0.16, 'triangle', 0.34, null, 0.14);
   vib(mult > 2 ? [12, 40, 22] : 16);
 }
-function sfxKill(){
-  burst(0.18, 0.4);
-  tone(170, 0.28, 'sawtooth', 0.4, 55);
-  vib(45);
+function sfxKill(){ burst(0.18, 0.4); tone(170, 0.28, 'sawtooth', 0.4, 55); vib(45); }
+function sfxDeath(){ burst(0.22, 0.3); tone(330, 0.5, 'sawtooth', 0.4, 70); vib([70, 50, 70]); }
+function sfxBall(){ tone(880, 0.09, 'square', 0.26, 320); }
+function sfxGem(){
+  tone(1180, 0.07, 'triangle', 0.3);
+  tone(1560, 0.12, 'triangle', 0.26, null, 0.05);
+  vib(10);
 }
-function sfxDeath(){
-  burst(0.22, 0.3);
-  tone(330, 0.5, 'sawtooth', 0.4, 70);
-  vib([70, 50, 70]);
+function sfxAlert(kind){
+  if (kind === 'star'){ tone(760, 0.07, 'triangle', 0.22); tone(1010, 0.12, 'triangle', 0.2, null, 0.08); }
+  else { tone(300, 0.09, 'square', 0.2); tone(220, 0.16, 'square', 0.18, null, 0.09); }
 }
-function sfxBall(){
-  tone(880, 0.09, 'square', 0.26, 320);
+function sfxDouble(){
+  tone(520, 0.14, 'triangle', 0.4);
+  tone(780, 0.14, 'triangle', 0.36, null, 0.1);
+  tone(1040, 0.32, 'triangle', 0.34, null, 0.2);
+  vib([30, 50, 30, 50, 90]);
+}
+function sfxBomb(){
+  burst(0.45, 0.55);
+  tone(120, 0.5, 'sawtooth', 0.5, 32);
+  tone(70,  0.7, 'sine', 0.45, 28, 0.05);
+  vib([40, 30, 90]);
 }
 
 /* ==========================================================================
-   MUSIQUE DE FOND (générée, aucun fichier externe)
+   MUSIQUE DE FOND
    ========================================================================== */
-const BPM        = 126;
-const S16        = (60 / BPM) / 4;   // durée d'une double-croche
-const LOOKAHEAD  = 0.18;
-const MUSIC_VOL  = 0.15;
+const BPM       = 126;
+const S16       = (60 / BPM) / 4;
+const LOOKAHEAD = 0.18;
+const MUSIC_VOL = 0.15;
 
-// progression mineure en boucle : Am – F – C – G (notes MIDI)
 const PROG = [
   { root: 45, chord: [0, 3, 7] },
   { root: 41, chord: [0, 4, 7] },
@@ -468,11 +1269,10 @@ function musicHat(t, vol){
   src.start(t);
 }
 
-// la musique se tend quand le tracé s'allonge et sur la fin de manche
 function musicIntensity(){
   const p = snakes[myId];
   let v = 0;
-  if (p && p.alive && p.trail.length) v = Math.min(1, p.trail.length / 90);
+  if (p && p.alive && p.trailCount) v = Math.min(1, p.trailCount / 90);
   if (roundEndsAt - now() < 30000) v = Math.max(v, 0.7);
   return v;
 }
@@ -480,10 +1280,7 @@ function musicIntensity(){
 function startMusic(){
   initAudio();
   if (!actx) return;
-  if (!musicGain){
-    musicGain = actx.createGain();
-    musicGain.connect(actx.destination);
-  }
+  if (!musicGain){ musicGain = actx.createGain(); musicGain.connect(actx.destination); }
   musicGain.gain.cancelScheduledValues(actx.currentTime);
   musicGain.gain.setValueAtTime(0.0001, actx.currentTime);
   musicGain.gain.linearRampToValueAtTime(muted ? 0.0001 : MUSIC_VOL, actx.currentTime + 1.4);
@@ -504,14 +1301,13 @@ function stopMusic(){
 function scheduleMusic(){
   if (!musicOn || !actx || !musicGain) return;
   if (muted){ nextNoteTime = actx.currentTime + 0.05; return; }
-
   while (nextNoteTime < actx.currentTime + LOOKAHEAD){
     const P = PROG[Math.floor(step16 / 16) % PROG.length];
     const i = step16 % 16;
     const inten = musicIntensity();
     const t = nextNoteTime;
 
-    if (i % 4 === 0) musicKick(t);                               // grosse caisse sur chaque temps
+    if (i % 4 === 0) musicKick(t);
     if (i % 2 === 0) musicNote(midi(P.root), t, 0.17, 'sawtooth', 0.17 + inten * 0.05, 430);
     if (i % 4 === 2) musicHat(t, 0.05 + inten * 0.05);
     if (inten > 0.5 && i % 2 === 1) musicHat(t, 0.028);
@@ -539,10 +1335,39 @@ function onLocalCapture(pts, mult, x, y){
 }
 function onLocalDeath(){ sfxDeath(); }
 function onLocalStar(){
+  kick(0.35, 0.05);
   tone(660,  0.08, 'triangle', 0.40);
   tone(880,  0.08, 'triangle', 0.40, null, 0.06);
   tone(1320, 0.24, 'triangle', 0.36, null, 0.12);
   vib([20, 30, 25]);
+}
+function onLocalEliminated(){
+  eliminatedAt = now();
+  burst(0.3, 0.35);
+  tone(300, 0.8, 'sawtooth', 0.42, 50);
+  tone(220, 0.9, 'sine', 0.3, 45, 0.1);
+  vib([90, 60, 90, 60, 140]);
+  const alive = snakes.filter(s => s.alive);
+  if (alive.length){
+    alive.sort((a, b) => counts[b.id] - counts[a.id]);
+    spectateId = alive[0].id;
+  }
+}
+function isEliminated(){
+  const p = snakes[myId];
+  return !!(p && p.eliminated);
+}
+function spectateTarget(){
+  const alive = snakes.filter(s => s.alive);
+  if (!alive.length) return snakes[myId];
+  if (!alive.some(s => s.id === spectateId)) spectateId = alive[0].id;
+  return snakes[spectateId];
+}
+function cycleSpectate(){
+  const alive = snakes.filter(s => s.alive);
+  if (!alive.length) return;
+  const i = alive.findIndex(s => s.id === spectateId);
+  spectateId = alive[(i + 1) % alive.length].id;
 }
 
 /* ==========================================================================
@@ -554,66 +1379,90 @@ function makeSnake(id, human){
     color: SNAKES_DEF[id].hex,
     isHuman: human,
     x:0, y:0, px:0, py:0,
-    dx:1, dy:0, nextDx:1, nextDy:0,
-    alive: false,
-    trail: [],
-    recent: [],
-    outside: false,
-    outSteps: 0,
-    maxOut: 20,
-    homeX: 0, homeY: 0,
-    wanderX: 0, wanderY: 0,
-    aggro: 0.25,
-    invisUntil: 0,
-    starUntil: 0,
-    skillReadyAt: 0,
-    ballReadyAt: 0,
-    respawnAt: 0,
+    cx:0, cy:0,
+    ang:0, wantAng:0,
+    alive:false, eliminated:false,
+    trailCells: [],
+    trailPts: [],
+    trailCount: 0,
+    trailVer: 0,
+    bodyPts: [],
+    outside:false,
+    maxOut: 30,
+    homeX:0, homeY:0,
+    wanderX:0, wanderY:0,
+    aggro:0.25,
+    skill:0.5,
+    huntId:-1, huntUntil:0,
+    invisUntil:0, starUntil:0, boostUntil:0,
+    skillReadyAt:0, ballReadyAt:0,
+    respawnAt:0,
+    outZoneSince:0,
+    streak:0, capStreak:0,
+    trappedUntil:0,
   };
 }
 
 function clearTrail(s){
-  for (let i = 0; i < s.trail.length; i++) trailOwner[s.trail[i]] = -1;
-  s.trail.length = 0;
+  for (let i = 0; i < s.trailCells.length; i++) trailOwner[s.trailCells[i]] = -1;
+  s.trailCells.length = 0;
+  s.trailPts = [];
+  s.trailCount = 0;
+  s.trailVer++;
 }
 
 function placeSnake(s, cx, cy){
   clearTrail(s);
-  s.recent.length = 0;
+  s.bodyPts = [];
   for (let y = cy - SPAWN_HALF; y <= cy + SPAWN_HALF; y++){
     for (let x = cx - SPAWN_HALF; x <= cx + SPAWN_HALF; x++){
       if (inBounds(x, y)) setOwner(idxOf(x, y), s.id);
     }
   }
-  s.x = s.px = cx;
-  s.y = s.py = cy;
-  const d = DIRS[(Math.random() * 4) | 0];
-  s.dx = s.nextDx = d[0];
-  s.dy = s.nextDy = d[1];
+  s.x = s.px = cx + 0.5;
+  s.y = s.py = cy + 0.5;
+  s.cx = cx; s.cy = cy;
+  s.ang = s.wantAng = Math.random() * Math.PI * 2;
   s.alive = true;
+  s.eliminated = false;
   s.outside = false;
-  s.outSteps = 0;
-  s.homeX = cx; s.homeY = cy;
+  s.homeX = cx + 0.5; s.homeY = cy + 0.5;
   s.invisUntil = 0;
   s.starUntil = 0;
+  s.boostUntil = 0;
   s.skillReadyAt = now() + COOL_MS * 0.5;
   s.ballReadyAt = now() + BALL_COOL * 0.5;
   s.respawnAt = 0;
+  s.streak = 0;
+  s.capStreak = 0;
+  s.huntId = -1;
+  s.huntUntil = 0;
+  s.trappedUntil = 0;
   pickWander(s);
 }
 
-function findFreeSpot(){
-  for (let attempt = 0; attempt < 300; attempt++){
-    const cx = 6 + ((Math.random() * (GRID - 12)) | 0);
-    const cy = 6 + ((Math.random() * (GRID - 12)) | 0);
-    let ok = true;
-    for (let y = cy - 4; y <= cy + 4 && ok; y++){
-      for (let x = cx - 4; x <= cx + 4; x++){
-        const i = idxOf(x, y);
-        if (trailOwner[i] !== -1 || owner[i] !== -1){ ok = false; break; }
-      }
+function areaClear(cx, cy, rad){
+  if (roundMode === 'br' && Math.hypot(cx - GRID/2, cy - GRID/2) > zoneRadius() - 5) return false;
+  for (let y = cy - rad; y <= cy + rad; y++){
+    for (let x = cx - rad; x <= cx + rad; x++){
+      if (!inBounds(x, y)) return false;
+      const i = idxOf(x, y);
+      if (trailOwner[i] !== -1 || owner[i] !== -1) return false;
     }
-    if (ok) return [cx, cy];
+  }
+  return true;
+}
+
+function findFreeSpot(){
+  for (let a = 0; a < 250; a++){
+    const cx = 5 + ((Math.random() * (GRID - 10)) | 0);
+    const cy = 5 + ((Math.random() * (GRID - 10)) | 0);
+    if (areaClear(cx, cy, 4)) return [cx, cy];
+  }
+  for (let a = 0; a < 250; a++){
+    const cx = 4 + ((Math.random() * (GRID - 8)) | 0);
+    const cy = 4 + ((Math.random() * (GRID - 8)) | 0);
+    if (areaClear(cx, cy, 3)) return [cx, cy];
   }
   return null;
 }
@@ -626,35 +1475,70 @@ function killSnake(s, killer){
   s.alive = false;
   clearTrail(s);
 
-  // le mangeur récupère toute la zone de sa victime
   const to = (killer && killer !== s && killer.alive) ? killer.id : -1;
+  const estPrime = (roundMode === 'contrat' && s.id === bountyId);
   let absorbed = 0;
+  const oldCells = [];
   for (let i = 0; i < TOTAL; i++){
-    if (owner[i] === s.id){ setOwner(i, to); absorbed++; }
+    if (owner[i] === s.id){ oldCells.push(i); setOwner(i, to); absorbed++; }
   }
   counts[s.id] = 0;
+  if (mode !== 'guest'){
+    buildRegionFx(oldCells, SNAKES_DEF[s.id].rgb, 'perte');
+    burstParts(s.x, s.y, SNAKES_DEF[s.id].rgb, 22);
+  }
 
+  if (to >= 0){
+    stats[to].k++;
+  }
   if (to >= 0 && absorbed > 0){
-    scores[to] += absorbed;
-    if (to === myId) addFloater(killer.x, killer.y, '+' + absorbed, '#ffffff');
+    const gainK = absorbed * pointsMult() * (estPrime ? 3 : 1)
+                + (estPrime ? BOUNTY_BONUS * pointsMult() : 0);
+    scores[to] += gainK;
+    if (to === myId) addFloater(killer.x, killer.y, '+' + gainK, estPrime ? '#fca5a5' : '#ffffff');
     if (counts[to] >= TOTAL) endRound();
   }
 
-  if (s.id === myId) onLocalDeath();
-  s.respawnAt = now() + RESPAWN_MS;
+  if (killer && killer !== s && killer.alive){
+    killer.streak = (killer.streak || 0) + 1;
+    notify(killer, 0, s.id);
+    if (killer.streak >= 2){
+      const bonus = 120 * (killer.streak - 1) * pointsMult();
+      scores[killer.id] += bonus;
+      notify(killer, 1, killer.streak, bonus);
+    }
+  }
+  s.streak = 0;
+  s.capStreak = 0;
+
+  if (estPrime) bountyId = (to >= 0) ? to : -1;    // la prime passe au tueur
+
+  if (s.id === myId){ onLocalDeath(); kick(1.5, 0.055); }
+  else if (killer && killer.id === myId) kick(0.55, 0.045);
+  if (roundMode === 'last'){
+    s.eliminated = true;                 // une seule vie
+    if (s.id === myId) onLocalEliminated();
+  } else {
+    s.respawnAt = now() + RESPAWN_MS;
+  }
 }
 
 function capture(s){
-  if (!s.trail.length) return;
-  const tlen = s.trail.length;
+  if (!s.trailCells.length) return;
+  const tlen = s.trailCells.length;
   const before = counts[s.id];
 
-  for (let i = 0; i < s.trail.length; i++){
-    const idx = s.trail[i];
+  const newCells = [];
+  for (let i = 0; i < s.trailCells.length; i++){
+    const idx = s.trailCells[i];
     trailOwner[idx] = -1;
+    if (owner[idx] !== s.id) newCells.push(idx);
     setOwner(idx, s.id);
   }
-  s.trail.length = 0;
+  s.trailCells.length = 0;
+  s.trailPts = [];
+  s.trailCount = 0;
+  s.trailVer++;
 
   visited.fill(0);
   let qh = 0, qt = 0;
@@ -673,8 +1557,9 @@ function capture(s){
     if (y < GRID - 1) push(x, y + 1);
   }
   for (let i = 0; i < TOTAL; i++){
-    if (!visited[i] && owner[i] !== s.id) setOwner(i, s.id);
+    if (!visited[i] && owner[i] !== s.id){ newCells.push(i); setOwner(i, s.id); }
   }
+  if (mode !== 'guest') buildRegionFx(newCells, SNAKES_DEF[s.id].rgb, 'gain');
 
   for (const o of snakes){
     if (o !== s && o.alive && counts[o.id] === 0) killSnake(o);
@@ -683,122 +1568,395 @@ function capture(s){
   const gained = counts[s.id] - before;
   if (gained > 0){
     const mult = Math.min(MULT_MAX, 1 + tlen / MULT_DIV);
-    const pts = Math.round(gained * mult);
+    const pts = Math.round(gained * mult) * pointsMult();
     scores[s.id] += pts;
-    if (s.id === myId) onLocalCapture(pts, mult, s.x, s.y);
+    if (pts > stats[s.id].c) stats[s.id].c = pts;
+    if (mult > stats[s.id].m) stats[s.id].m = mult;
+    s.capStreak = (s.capStreak || 0) + 1;
+    if (s.capStreak % 5 === 0){
+      const bonus = 200 * (s.capStreak / 5) * pointsMult();
+      scores[s.id] += bonus;
+      notify(s, 2, s.capStreak, bonus);
+    }
+    if (s.id === myId){ onLocalCapture(pts, mult, s.x, s.y); kick(0.12, 0.022); }
   }
 
   if (counts[s.id] >= TOTAL) endRound();
 }
 
 /* ==========================================================================
-   IA DES BOTS
+   BONUS : ÉTOILE, GEMME, BOMBE
    ========================================================================== */
-function pickWander(s){
-  const dist = 12 + ((Math.random() * 22) | 0);
-  const a = Math.random() * Math.PI * 2;
-  s.wanderX = Math.max(2, Math.min(GRID - 3, s.x + Math.round(Math.cos(a) * dist)));
-  s.wanderY = Math.max(2, Math.min(GRID - 3, s.y + Math.round(Math.sin(a) * dist)));
-  s.maxOut = 14 + ((Math.random() * 34) | 0);
+function findSpot(minDist, lists){
+  for (let k = 0; k < 60; k++){
+    const x = 4 + Math.random() * (GRID - 8);
+    const y = 4 + Math.random() * (GRID - 8);
+    if (trailOwner[idxOf(x | 0, y | 0)] !== -1) continue;
+    if (roundMode === 'br' && Math.hypot(x - GRID/2, y - GRID/2) > zoneRadius() - 4) continue;
+    let bad = false;
+    for (const L of lists){
+      for (const o of L){ if (Math.hypot(o.x - x, o.y - y) < minDist){ bad = true; break; } }
+      if (bad) break;
+    }
+    if (bad) continue;
+    return { x, y };
+  }
+  return null;
 }
 
-function dirPenalty(s, x, y){
-  if (x < 1 || y < 1 || x > GRID - 2 || y > GRID - 2) return 900;
-  return trailOwner[idxOf(x, y)] === s.id ? 10 : 0;
+function spawnAt(list, minDist){
+  const p = findSpot(minDist, [list]);
+  if (p) list.push({ x:p.x, y:p.y, born: now() });
 }
 
-function nearestOther(s){
-  let best = null, bestD = 1e9;
-  for (const o of snakes){
-    if (o === s || !o.alive || isInvisible(o)) continue;
-    const d = Math.abs(o.x - s.x) + Math.abs(o.y - s.y);
-    if (d < bestD){ bestD = d; best = o; }
-  }
-  return { target: best, dist: bestD };
+function countPending(kind){
+  let n = 0;
+  for (const p of pending) if (p.kind === kind) n++;
+  return n;
 }
 
-function botThink(s){
-  const { target, dist } = nearestOther(s);
+function expire(list, life){
+  const t = now();
+  for (let i = list.length - 1; i >= 0; i--){
+    if (t - list[i].born > life) list.splice(i, 1);
+  }
+}
 
-  let star = null, sd = 1e9;
-  for (const st of stars){
-    const d = Math.abs(st.x - s.x) + Math.abs(st.y - s.y);
-    if (d < sd){ sd = d; star = st; }
+function maybeSpawnPickups(){
+  const t = now();
+  expire(stars, STAR_LIFE);
+  expire(gems, GEM_LIFE);
+  expire(bombs, BOMB_LIFE);
+
+  // les bonus annoncés apparaissent à échéance
+  for (let i = pending.length - 1; i >= 0; i--){
+    if (t >= pending[i].at){
+      const p = pending.splice(i, 1)[0];
+      (p.kind === 'star' ? stars : bombs).push({ x:p.x, y:p.y, born: t });
+    }
   }
 
-  if (now() >= s.skillReadyAt && s.outside && target && dist < 6 && !isStarred(s)){
-    s.invisUntil = now() + INVIS_MS;
-    s.skillReadyAt = now() + COOL_MS;
+  if (t >= nextStarAt && stars.length + countPending('star') < STAR_MAX){
+    nextStarAt = t + STAR_SPAWN_MIN + Math.random() * (STAR_SPAWN_MAX - STAR_SPAWN_MIN);
+    const sp = findSpot(22, [stars, bombs, pending]);
+    if (sp){ pending.push({ kind:'star', x:sp.x, y:sp.y, at: t + TELE_MS }); sfxAlert('star'); }
+  }
+  expire(dashes, DASH_LIFE);
+  if (t >= nextDashAt && dashes.length < DASH_MAX){
+    nextDashAt = t + DASH_INT_MIN + Math.random() * (DASH_INT_MAX - DASH_INT_MIN);
+    const sp = findSpot(7, [dashes]);
+    if (sp) dashes.push({ x:sp.x, y:sp.y, born:t,
+                          c: DASH_COLORS[(Math.random() * DASH_COLORS.length) | 0] });
   }
 
-  let tx, ty;
-  const mustReturn = s.outside && (s.outSteps > s.maxOut || s.trail.length > 90);
-  if (mustReturn){
-    tx = s.homeX; ty = s.homeY;
-  } else if (star && sd < 26){
-    tx = star.x; ty = star.y;
-  } else if (target && target.outside && dist < 16 && Math.random() < s.aggro && !isInvisible(s)){
-    tx = target.x; ty = target.y;
-  } else {
-    tx = s.wanderX; ty = s.wanderY;
-    if (Math.abs(tx - s.x) + Math.abs(ty - s.y) < 3) pickWander(s);
+  if (t >= nextGemAt && gems.length < GEM_MAX_N){
+    nextGemAt = t + GEM_MIN + Math.random() * (GEM_MAX - GEM_MIN);
+    spawnAt(gems, 12);
   }
+  if (t >= nextBombAt && bombs.length + countPending('bomb') < BOMB_MAX_N){
+    nextBombAt = t + BOMB_MIN + Math.random() * (BOMB_MAX - BOMB_MIN);
+    const sp = findSpot(26, [stars, bombs, pending]);
+    if (sp){ pending.push({ kind:'bomb', x:sp.x, y:sp.y, at: t + TELE_MS }); sfxAlert('bomb'); }
+  }
+}
 
-  if (now() >= s.ballReadyAt && !isInvisible(s) && target && !isInvisible(target)){
-    const rx = target.x - s.x, ry = target.y - s.y;
-    const aligned = (s.dx !== 0 && Math.sign(rx) === s.dx && Math.abs(ry) <= 1 && Math.abs(rx) <= BALL_RANGE)
-                 || (s.dy !== 0 && Math.sign(ry) === s.dy && Math.abs(rx) <= 1 && Math.abs(ry) <= BALL_RANGE);
-    if (aligned) fireBall(s);
+// la bombe rend neutre tout le terrain dans un rayon : c'est ce qui empêche
+// la carte de se saturer et relance les réapparitions
+function explodeBomb(bx, by, s){
+  let enemy = 0;
+  const rr = BOMB_R * BOMB_R;
+  const x0 = Math.max(0, (bx - BOMB_R) | 0), x1 = Math.min(GRID - 1, (bx + BOMB_R) | 0);
+  const y0 = Math.max(0, (by - BOMB_R) | 0), y1 = Math.min(GRID - 1, (by + BOMB_R) | 0);
+  for (let y = y0; y <= y1; y++){
+    for (let x = x0; x <= x1; x++){
+      const dx = x + 0.5 - bx, dy = y + 0.5 - by;
+      if (dx*dx + dy*dy > rr) continue;
+      const i = idxOf(x, y);
+      if (owner[i] === -1) continue;
+      if (s && owner[i] !== s.id) enemy++;
+      setOwner(i, -1);
+    }
   }
+  if (s && enemy > 0){
+    const gainB = enemy * pointsMult();
+    scores[s.id] += gainB;
+    if (s.id === myId) addFloater(bx, by, '+' + gainB, '#ffffff');
+  }
+  fxs.push({ x: bx, y: by, t0: now(), kind:'boom' });
+  if (mode !== 'guest') burstParts(bx, by, [251,146,60], 26);
+  {
+    const me = snakes[myId];
+    const d = me ? Math.hypot(me.x - bx, me.y - by) : 99;
+    kick(Math.max(0.3, 1.7 - d / 18), 0.03);
+  }
+  pendingFx.push([r2(bx), r2(by), 0]);
+  if (!s || s.id === myId) sfxBomb(); else sfxBomb();
+  for (const o of snakes){ if (o.alive && counts[o.id] === 0) killSnake(o, null); }
+}
 
-  const opts = [];
-  for (const d of DIRS){
-    if (d[0] === -s.dx && d[1] === -s.dy) continue;
-    const nx = s.x + d[0], ny = s.y + d[1];
-    opts.push({ d, score: Math.abs(tx - nx) + Math.abs(ty - ny) + dirPenalty(s, nx, ny) });
+function grabPickups(s){
+  for (let i = stars.length - 1; i >= 0; i--){
+    if (Math.hypot(stars[i].x - s.x, stars[i].y - s.y) < STAR_HIT){
+      stars.splice(i, 1);
+      s.starUntil = now() + STAR_MS;
+      s.invisUntil = 0;
+      if (s.id === myId) onLocalStar();
+    }
   }
-  if (!opts.length) return;
-  opts.sort((a, b) => a.score - b.score);
-  const pick = (Math.random() < 0.1 && opts.length > 1) ? opts[1] : opts[0];
-  s.nextDx = pick.d[0];
-  s.nextDy = pick.d[1];
+  for (let i = gems.length - 1; i >= 0; i--){
+    if (Math.hypot(gems[i].x - s.x, gems[i].y - s.y) < GEM_HIT){
+      const g = gems.splice(i, 1)[0];
+      const gainG = GEM_PTS * pointsMult();
+      scores[s.id] += gainG;
+      stats[s.id].g++;
+      if (s.id === myId){ sfxGem(); addFloater(g.x, g.y, '+' + gainG, '#a5f3fc'); }
+    }
+  }
+  for (let i = dashes.length - 1; i >= 0; i--){
+    if (Math.hypot(dashes[i].x - s.x, dashes[i].y - s.y) >= DASH_HIT) continue;
+    const d = dashes.splice(i, 1)[0];
+    s.boostUntil = Math.min(now() + DASH_CAP, Math.max(now(), s.boostUntil) + DASH_MS);
+    if (s.id === myId) tone(1250, 0.05, 'triangle', 0.16, 1600);
+    burstParts(d.x, d.y, d.c, 5);
+  }
+  for (let i = bombs.length - 1; i >= 0; i--){
+    if (Math.hypot(bombs[i].x - s.x, bombs[i].y - s.y) < BOMB_HIT){
+      const b = bombs.splice(i, 1)[0];
+      explodeBomb(b.x, b.y, s);
+      if (!s.alive) return;
+    }
+  }
 }
 
 /* ==========================================================================
-   BONUS ÉTOILE
+   OBJETS PROPRES À CHAQUE CARTE
    ========================================================================== */
-function maybeSpawnStar(){
-  const t = now();
-  for (let i = stars.length - 1; i >= 0; i--){
-    if (t - stars[i].born > STAR_LIFE) stars.splice(i, 1);
-  }
-  if (t < nextStarAt || stars.length >= STAR_MAX) return;
-  nextStarAt = t + STAR_SPAWN_MIN + Math.random() * (STAR_SPAWN_MAX - STAR_SPAWN_MIN);
-
-  for (let k = 0; k < 60; k++){
-    const x = 3 + ((Math.random() * (GRID - 6)) | 0);
-    const y = 3 + ((Math.random() * (GRID - 6)) | 0);
-    if (trailOwner[idxOf(x, y)] !== -1) continue;
-    let tooClose = false;
-    for (const st of stars){
-      if (Math.abs(st.x - x) + Math.abs(st.y - y) < 22){ tooClose = true; break; }
+// peint un disque à la couleur d'un snake et renvoie le nombre de cases prises
+function paintDisc(cx, cy, r, id){
+  let gained = 0;
+  const rr = r * r;
+  const x0 = Math.max(0, (cx - r) | 0), x1 = Math.min(GRID - 1, (cx + r) | 0);
+  const y0 = Math.max(0, (cy - r) | 0), y1 = Math.min(GRID - 1, (cy + r) | 0);
+  for (let y = y0; y <= y1; y++){
+    for (let x = x0; x <= x1; x++){
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+      if (dx*dx + dy*dy > rr) continue;
+      const i = idxOf(x, y);
+      if (owner[i] === id) continue;
+      setOwner(i, id);
+      gained++;
     }
-    if (tooClose) continue;
-    stars.push({ x, y, born: t });
-    return;
+  }
+  if (gained){
+    for (const o of snakes){ if (o.alive && counts[o.id] === 0) killSnake(o, null); }
+  }
+  return gained;
+}
+
+function initMapItems(){
+  planets = []; sparks = []; shells = []; volcanoes = [];
+  nextSparkAt = now() + 4000;
+  nextShellAt = now() + 5000;
+  const id = roundMap.id;
+
+  if (id === 'space'){
+    for (let k = 0; k < PLANET_N; k++){
+      const sp = findSpot(20, [planets]);
+      if (sp) planets.push({ x:sp.x, y:sp.y, vx:0, vy:0, owner:-1, rot:0 });
+    }
+  } else if (id === 'lava'){
+    for (let k = 0; k < VOLC_N; k++){
+      const sp = findSpot(22, [volcanoes]);
+      if (sp) volcanoes.push({ x:sp.x, y:sp.y, eruptAt: now() + 4000 + Math.random() * 9000 });
+    }
   }
 }
 
-function grabStar(s, x, y){
-  for (let i = stars.length - 1; i >= 0; i--){
-    if (stars[i].x === x && stars[i].y === y){
-      stars.splice(i, 1);
-      s.starUntil = now() + STAR_MS;
-      s.invisUntil = 0;              // l'étoile annule et bloque l'invisibilité
-      if (s.id === myId) onLocalStar();
-      return;
+// la planète roule, peint son passage, et écrase qui la reçoit à pleine vitesse
+function stepPlanets(){
+  for (const p of planets){
+    const sp = Math.hypot(p.vx, p.vy);
+    if (sp > 0.02){
+      p.x += p.vx * DT;
+      p.y += p.vy * DT;
+      if (p.x < PLANET_R){ p.x = PLANET_R; p.vx = -p.vx * 0.55; }
+      if (p.x > GRID - PLANET_R){ p.x = GRID - PLANET_R; p.vx = -p.vx * 0.55; }
+      if (p.y < PLANET_R){ p.y = PLANET_R; p.vy = -p.vy * 0.55; }
+      if (p.y > GRID - PLANET_R){ p.y = GRID - PLANET_R; p.vy = -p.vy * 0.55; }
+      p.vx *= PLANET_FRIC; p.vy *= PLANET_FRIC;
+      p.rot += sp * DT * 0.35;
+      if (p.owner >= 0) paintDisc(p.x, p.y, PLANET_R, p.owner);
+    } else { p.vx = 0; p.vy = 0; }
+
+    for (const s of snakes){
+      if (!s.alive) continue;
+      if (Math.hypot(s.x - p.x, s.y - p.y) > PLANET_R + 0.9) continue;
+      if (sp > PLANET_DEAD && p.owner !== s.id && !isStarred(s)){
+        killSnake(s, p.owner >= 0 ? snakes[p.owner] : null);
+        continue;
+      }
+      p.owner = s.id;                                  // on la revendique en la poussant
+      p.vx = Math.cos(s.ang) * PLANET_PUSH;
+      p.vy = Math.sin(s.ang) * PLANET_PUSH;
+      p.x = s.x + Math.cos(s.ang) * (PLANET_R + 0.95);
+      p.y = s.y + Math.sin(s.ang) * (PLANET_R + 0.95);
     }
   }
+}
+
+function volcState(v){
+  const t = now();
+  if (t >= v.eruptAt + ERUPT_MS){
+    v.eruptAt = t + REST_MIN + Math.random() * (REST_MAX - REST_MIN);
+    return 'calme';
+  }
+  if (t >= v.eruptAt) return 'eruption';
+  if (t >= v.eruptAt - WARN_MS) return 'grondement';
+  return 'calme';
+}
+
+function stepVolcanoes(){
+  for (const v of volcanoes){
+    if (volcState(v) !== 'eruption') continue;
+    for (const s of snakes){
+      if (!s.alive || isStarred(s)) continue;
+      if (Math.hypot(s.x - v.x, s.y - v.y) < LAVA_R) killSnake(s, null);
+    }
+  }
+}
+
+function stepMapItems(){
+  const t = now();
+  const id = roundMap.id;
+  if (id === 'space') stepPlanets();
+  else if (id === 'lava') stepVolcanoes();
+  else if (id === 'storm'){
+    expire(sparks, SPARK_LIFE);
+    if (t >= nextSparkAt && sparks.length < SPARK_MAX_N){
+      nextSparkAt = t + SPARK_MIN + Math.random() * (SPARK_MAX - SPARK_MIN);
+      spawnAt(sparks, 18);
+    }
+  } else if (id === 'ocean'){
+    expire(shells, SHELL_LIFE);
+    if (t >= nextShellAt && shells.length < SHELL_MAX_N){
+      nextShellAt = t + SHELL_MIN + Math.random() * (SHELL_MAX - SHELL_MIN);
+      spawnAt(shells, 14);
+    }
+  }
+}
+
+function grabMapItems(s){
+  // éclair : trois petites zones à sa couleur apparaissent autour de soi
+  for (let i = sparks.length - 1; i >= 0; i--){
+    if (Math.hypot(sparks[i].x - s.x, sparks[i].y - s.y) >= SPARK_HIT) continue;
+    sparks.splice(i, 1);
+    let gained = 0;
+    for (let k = 0; k < SPARK_ZONES; k++){
+      const a = Math.random() * 6.283, d = 6 + Math.random() * 8;
+      gained += paintDisc(s.x + Math.cos(a) * d, s.y + Math.sin(a) * d, 3.2 + Math.random(), s.id);
+    }
+    if (gained > 0){
+      const g = gained * pointsMult();
+      scores[s.id] += g;
+      if (s.id === myId) addFloater(s.x, s.y, '+' + g, '#bfdbfe');
+    }
+    fxs.push({ x:s.x, y:s.y, t0: now(), kind:'zap' });
+    if (mode === 'host') pendingFx.push([r2(s.x), r2(s.y), 1]);
+    if (s.id === myId){
+      flashAt = now(); bolt = makeBolt();
+      tone(1400, 0.06, 'square', 0.3, 400);
+      burst(0.25, 0.3);
+      vib([15, 25, 40]);
+    }
+  }
+  // coquillage : on se fait avaler et on ne bouge plus
+  for (let i = shells.length - 1; i >= 0; i--){
+    if (Math.hypot(shells[i].x - s.x, shells[i].y - s.y) >= SHELL_HIT) continue;
+    shells.splice(i, 1);
+    s.trappedUntil = now() + SHELL_MS;
+    if (s.id === myId){
+      showBigMsg('Coincé !', 'Un coquillage t\'a avalé', '#67e8f9');
+      tone(240, 0.35, 'sine', 0.35, 90);
+      burst(0.2, 0.25);
+      vib([60, 40, 60]);
+    }
+  }
+}
+
+/* ==========================================================================
+   ZONE (BATTLE ROYALE)
+   ========================================================================== */
+// tous les points comptent double sur la dernière minute : c'est ce qui rend
+// une manche rattrapable jusqu'au bout
+function pointsMult(){
+  return (running && roundEndsAt - now() <= DOUBLE_MS) ? 2 : 1;
+}
+
+const toastBox = document.getElementById('toasts');
+
+function addToast(text, col){
+  if (attract) return;
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.style.color = col || '#ffffff';
+  el.textContent = text;
+  toastBox.appendChild(el);
+  if (toastBox.children.length > 4) toastBox.firstChild.remove();
+  setTimeout(() => el.classList.add('out'), 1800);
+  setTimeout(() => el.remove(), 2250);
+}
+
+const ord = n => n === 1 ? '1er' : n + 'e';
+
+// 0 = snake mangé, 1 = série de kills, 2 = série de captures
+function applyEvent(type, a, b){
+  if (type === 0){
+    addToast('Tu as mangé ' + snakeLabel(a), '#ffffff');
+  } else if (type === 1){
+    addToast(STREAK_NAMES[Math.min(a, 5)] + ' · +' + b.toLocaleString('fr-FR'), '#fca5a5');
+    tone(420 + a * 90, 0.12, 'square', 0.3);
+    tone(620 + a * 110, 0.2, 'square', 0.24, null, 0.08);
+    vib([18, 30, 30]);
+  } else if (type === 2){
+    addToast(a + ' captures d\'affilée · +' + b.toLocaleString('fr-FR'), '#86efac');
+    tone(700, 0.12, 'triangle', 0.3);
+    tone(1050, 0.22, 'triangle', 0.26, null, 0.08);
+    vib([16, 26, 26]);
+  }
+}
+
+// destine l'événement au bon joueur : local, ou mis en file pour l'invité
+function notify(s, type, a, b){
+  if (s.id === myId) applyEvent(type, a, b || 0);
+  else if (mode === 'host' && s.id === 1) pendingEv.push([type, a, b || 0]);
+}
+
+function showBigMsg(t1, t2, col){
+  if (attract) return;
+  bigMsgTxt = t1; bigMsgSub = t2 || ''; bigMsgCol = col || '#fff'; bigMsgAt = now();
+}
+
+function zoneRadius(){
+  if (roundMode !== 'br') return 1e9;
+  if (mode === 'guest' && guestZoneR != null) return guestZoneR;
+  const elapsed = ROUND_MS - Math.max(0, roundEndsAt - now());
+  const span = ROUND_MS - ZONE_GRACE - ZONE_DONE;
+  const t = Math.min(1, Math.max(0, (elapsed - ZONE_GRACE) / span));
+  return ZONE_START + (ZONE_END - ZONE_START) * t;
+}
+
+function clearOutsideZone(r){
+  const c = GRID / 2;
+  const rr = r * r;
+  for (let y = 0; y < GRID; y++){
+    for (let x = 0; x < GRID; x++){
+      const i = idxOf(x, y);
+      if (owner[i] === -1) continue;
+      const dx = x + 0.5 - c, dy = y + 0.5 - c;
+      if (dx*dx + dy*dy > rr) setOwner(i, -1);
+    }
+  }
+  for (const o of snakes){ if (o.alive && counts[o.id] === 0) killSnake(o, null); }
 }
 
 /* ==========================================================================
@@ -812,124 +1970,344 @@ function fireBall(s){
   balls.push({
     id: s.id, color: s.color,
     x: s.x, y: s.y, px: s.x, py: s.y,
-    dx: s.dx, dy: s.dy,
+    dx: Math.cos(s.ang), dy: Math.sin(s.ang),
     left: BALL_RANGE,
   });
   return true;
 }
 
-function ballHits(b, x, y){
-  for (const o of snakes){
-    if (!o.alive || o.id === b.id || isInvisible(o) || isStarred(o)) continue;
-    if (o.x === x && o.y === y){ killSnake(o, snakes[b.id]); if (b.id === myId) sfxKill(); return true; }
-  }
-  return false;
-}
-
 function stepBalls(){
+  const move = BALL_SPEED * DT;
   for (let i = balls.length - 1; i >= 0; i--){
     const b = balls[i];
     b.px = b.x; b.py = b.y;
-    let done = false;
-    for (let k = 0; k < BALL_SPEED; k++){
-      const nx = b.x + b.dx, ny = b.y + b.dy;
-      if (!inBounds(nx, ny)){ done = true; break; }
-      b.x = nx; b.y = ny; b.left--;
-      if (ballHits(b, nx, ny)){ done = true; break; }
-      if (b.left <= 0){ done = true; break; }
+    b.x += b.dx * move;
+    b.y += b.dy * move;
+    b.left -= move;
+    let done = b.left <= 0 || b.x < 0 || b.y < 0 || b.x > GRID || b.y > GRID;
+    if (!done){
+      for (const o of snakes){
+        if (!o.alive || o.id === b.id || isInvisible(o) || isStarred(o)) continue;
+        if (Math.hypot(o.x - b.x, o.y - b.y) < BALL_HIT){
+          killSnake(o, snakes[b.id]);
+          if (b.id === myId) sfxKill();
+          done = true;
+          break;
+        }
+      }
     }
     if (done) balls.splice(i, 1);
   }
 }
 
 /* ==========================================================================
+   IA DES BOTS
+   ========================================================================== */
+function pickWander(s){
+  const dist = 14 + Math.random() * 24;
+  const a = Math.random() * Math.PI * 2;
+  s.wanderX = Math.max(6, Math.min(GRID - 6, s.x + Math.cos(a) * dist));
+  s.wanderY = Math.max(6, Math.min(GRID - 6, s.y + Math.sin(a) * dist));
+  s.maxOut = 22 + ((Math.random() * 55) | 0) + Math.round(s.skill * 25);
+}
+
+function nearestOther(s){
+  let best = null, bestD = 1e9;
+  for (const o of snakes){
+    if (o === s || !o.alive || isInvisible(o)) continue;
+    const d = Math.hypot(o.x - s.x, o.y - s.y);
+    if (d < bestD){ bestD = d; best = o; }
+  }
+  return { target: best, dist: bestD };
+}
+
+// on ne tue pas en courant derrière une tête : il faut couper le tracé.
+// à défaut de tracé, on vise devant la victime pour l'intercepter.
+function cutPoint(o, s){
+  const pts = o.trailPts;
+  let bx = 0, by = 0, bd = 1e9;
+  for (let i = 0; i < pts.length; i += 2){
+    const d = Math.hypot(pts[i] - s.x, pts[i+1] - s.y);
+    if (d < bd){ bd = d; bx = pts[i]; by = pts[i+1]; }
+  }
+  if (bd < 1e9) return { x:bx, y:by };
+  const fly = Math.min(3, Math.hypot(o.x - s.x, o.y - s.y) / SPEED);
+  return { x: o.x + Math.cos(o.ang) * SPEED * fly, y: o.y + Math.sin(o.ang) * SPEED * fly };
+}
+
+function botThink(s){
+  const { target, dist } = nearestOther(s);
+
+  let pick = null, sd = 1e9;
+  for (const list of [stars, gems, bombs, pending, sparks]){
+    for (const o of list){
+      const d = Math.hypot(o.x - s.x, o.y - s.y);
+      if (d < sd){ sd = d; pick = o; }
+    }
+  }
+
+  const t = now();
+  const menace = !!(target && s.outside && dist < 7.5 && !isStarred(s));
+
+  if (t >= s.skillReadyAt && menace){
+    s.invisUntil = t + INVIS_MS;
+    s.skillReadyAt = t + COOL_MS;
+  }
+
+  // une proie choisie est poursuivie plusieurs secondes, au lieu de changer d'avis
+  // à chaque image comme avant
+  let prey = null;
+  if (s.huntId >= 0 && t < s.huntUntil){
+    const o = snakes[s.huntId];
+    if (o && o.alive && !isInvisible(o) && !isStarred(o)) prey = o;
+    else s.huntId = -1;
+  }
+  if (!prey && target && !isStarred(target) && !isInvisible(s)){
+    const intrus = owner[idxOf(target.x | 0, target.y | 0)] === s.id;
+    const portee = 16 + s.skill * 18;
+    if ((intrus && dist < portee + 10) || (target.outside && dist < portee && Math.random() < s.aggro * 0.3)){
+      prey = target;
+      s.huntId = target.id;
+      s.huntUntil = t + 1500 + s.skill * 2500;
+    }
+  }
+
+  let tx, ty;
+  const mustReturn = s.outside && (s.trailCells.length > s.maxOut || (menace && !isStarred(s)));
+  if (mustReturn){
+    tx = s.homeX; ty = s.homeY;
+  } else if (prey){
+    const c = cutPoint(prey, s);
+    tx = c.x; ty = c.y;
+  } else if (pick && sd < 26 + s.skill * 14){
+    tx = pick.x; ty = pick.y;
+  } else {
+    tx = s.wanderX; ty = s.wanderY;
+    if (Math.hypot(tx - s.x, ty - s.y) < 4) pickWander(s);
+  }
+
+  // une pastille juste devant vaut le petit détour
+  if (!prey && !mustReturn){
+    let dd = 1e9, best = null;
+    for (const o of dashes){
+      const d = Math.hypot(o.x - s.x, o.y - s.y);
+      if (d < dd){ dd = d; best = o; }
+    }
+    if (best && dd < 7){ tx = best.x; ty = best.y; }
+  }
+
+  // on s'écarte de la lave sur le point de jaillir et des coquillages
+  for (const v of volcanoes){
+    const t2 = now();
+    if (t2 < v.eruptAt - WARN_MS || t2 > v.eruptAt + ERUPT_MS) continue;
+    const d = Math.hypot(s.x - v.x, s.y - v.y);
+    if (d < LAVA_R + 5 && d > 0.1){
+      tx = s.x + (s.x - v.x) / d * 16;
+      ty = s.y + (s.y - v.y) / d * 16;
+    }
+  }
+  for (const sh of shells){
+    const d = Math.hypot(s.x - sh.x, s.y - sh.y);
+    if (d < 4 && d > 0.1){
+      tx = s.x + (s.x - sh.x) / d * 13;
+      ty = s.y + (s.y - sh.y) / d * 13;
+    }
+  }
+
+  // en battle royale on ramène toujours la cible dans la zone
+  if (roundMode === 'br'){
+    const c = GRID / 2, r = Math.max(6, zoneRadius() - 5);
+    if (Math.hypot(s.x - c, s.y - c) > r){ tx = c; ty = c; }
+    else {
+      const dt = Math.hypot(tx - c, ty - c);
+      if (dt > r){ const k = r / dt; tx = c + (tx - c) * k; ty = c + (ty - c) * k; }
+    }
+  }
+
+  // on ne colle pas les bords
+  const M = 6;
+  if (s.x < M) tx = s.x + 16;
+  else if (s.x > GRID - M) tx = s.x - 16;
+  if (s.y < M) ty = s.y + 16;
+  else if (s.y > GRID - M) ty = s.y - 16;
+
+  if (t >= s.ballReadyAt && !isInvisible(s) && target && !isInvisible(target) && !isStarred(target)){
+    const vol = dist / BALL_SPEED;                       // temps de trajet de la boule
+    const ax = target.x + Math.cos(target.ang) * SPEED * vol;
+    const ay = target.y + Math.sin(target.ang) * SPEED * vol;
+    const a = Math.atan2(ay - s.y, ax - s.x);
+    if (Math.abs(angDiff(a, s.ang)) < 0.10 + s.skill * 0.16 && dist < BALL_RANGE * 0.92) fireBall(s);
+  }
+
+  s.wantAng = Math.atan2(ty - s.y, tx - s.x);
+}
+
+/* ==========================================================================
    SIMULATION
    ========================================================================== */
-function stepSnake(s){
-  const blocked = !inBounds(s.x + s.dx, s.y + s.dy);
-  // demi-tour interdit, sauf si on est bloqué contre un mur
-  if (blocked || !(s.nextDx === -s.dx && s.nextDy === -s.dy)){
-    s.dx = s.nextDx; s.dy = s.nextDy;
-  }
-  let nx = s.x + s.dx, ny = s.y + s.dy;
+function visitCell(s, x, y){
+  if (!inBounds(x, y)) return;
+  const i = idxOf(x, y);
 
-  if (!inBounds(nx, ny)){
-    if (s.isHuman){
-      s.px = s.x; s.py = s.y;      // on reste immobile tant qu'aucune direction valide n'est donnée
-      return;
-    }
-    // un bot repart de lui-même le long du mur
-    if (s.dx !== 0){ s.dy = (s.y > GRID / 2) ? -1 : 1; s.dx = 0; }
-    else           { s.dx = (s.x > GRID / 2) ? -1 : 1; s.dy = 0; }
-    s.nextDx = s.dx; s.nextDy = s.dy;
-    nx = s.x + s.dx; ny = s.y + s.dy;
-    if (!inBounds(nx, ny)) return;
-  }
-  const nidx = idxOf(nx, ny);
-
-  const t = trailOwner[nidx];
+  const t = trailOwner[i];
   if (t !== -1 && t !== s.id){
-    const victim = snakes[t];
-    // l'étoile protège la victime ; le porteur d'étoile, lui, mange toujours
-    if (!isInvisible(s) && !isInvisible(victim) && !isStarred(victim)){
-      killSnake(victim, s);
+    const v = snakes[t];
+    if (!isInvisible(s) && !isInvisible(v) && !isStarred(v)){
+      killSnake(v, s);
       if (s.id === myId) sfxKill();
     }
   }
 
-  s.px = s.x; s.py = s.y;
-  s.x = nx;   s.y = ny;
-  grabStar(s, nx, ny);
-
-  s.recent.push(nidx);
-  if (s.recent.length > 8) s.recent.shift();
-
-  if (owner[nidx] === s.id){
-    if (s.trail.length) capture(s);
+  if (owner[i] === s.id){
+    if (s.trailCells.length) capture(s);
     s.outside = false;
-    s.outSteps = 0;
-    s.homeX = nx; s.homeY = ny;
-    if (!s.isHuman && Math.random() < 0.25) pickWander(s);
+    s.homeX = x + 0.5; s.homeY = y + 0.5;
+    if (!s.isHuman && Math.random() < 0.06) pickWander(s);
   } else {
-    if (!s.outside){ s.homeX = s.px; s.homeY = s.py; }
     s.outside = true;
-    s.outSteps++;
-    if (trailOwner[nidx] !== s.id){
-      s.trail.push(nidx);
-      trailOwner[nidx] = s.id;
+    if (trailOwner[i] !== s.id){
+      s.trailCells.push(i);
+      trailOwner[i] = s.id;
+      s.trailCount = s.trailCells.length;
     }
   }
 }
 
+// on marque toutes les cases traversées, en scellant les diagonales
+// sinon le remplissage fuirait par les coins
+function enterCell(s, nx, ny){
+  const ox = s.cx, oy = s.cy;
+  if (nx === ox && ny === oy) return;
+  if (nx !== ox && ny !== oy){
+    visitCell(s, nx, oy);
+    if (!s.alive) return;
+  }
+  s.cx = nx; s.cy = ny;
+  visitCell(s, nx, ny);
+}
+
+function pushTrailPt(s){
+  if (!s.outside) return;
+  const a = s.trailPts;
+  const n = a.length;
+  if (!n || Math.hypot(s.x - a[n-2], s.y - a[n-1]) >= PT_SPACING){
+    a.push(r2(s.x), r2(s.y));
+  }
+}
+
+function pushBodyPt(s){
+  const a = s.bodyPts;
+  const n = a.length;
+  if (!n || Math.hypot(s.x - a[n-2], s.y - a[n-1]) >= PT_SPACING){
+    a.push(r2(s.x), r2(s.y));
+    while (a.length > BODY_PTS * 2) a.splice(0, 2);
+  }
+}
+
+function stepSnake(s){
+  if (now() < s.trappedUntil){ s.px = s.x; s.py = s.y; return; }   // avalé, immobile
+  const boost = isStarred(s);
+  const dash = isBoosted(s);
+  const grow = (roundMode === 'croissance')
+    ? 1 + Math.min(GROW_MAX, counts[s.id] / TOTAL * 1.8) : 1;
+  const spd = SPEED * (boost ? STAR_SPD : 1) * (dash ? DASH_SPD : 1) * grow;
+  const turn = TURN * (boost ? STAR_TRN : 1) * (dash ? 1.08 : 1);
+
+  const d = angDiff(s.wantAng, s.ang);
+  const maxT = turn * DT;
+  s.ang += Math.max(-maxT, Math.min(maxT, d));
+
+  s.px = s.x; s.py = s.y;
+
+  let tx = s.x + Math.cos(s.ang) * spd * DT;
+  let ty = s.y + Math.sin(s.ang) * spd * DT;
+
+  // murs : on glisse le long du bord, et de face on s'arrête net
+  const M = 0.05;
+  if (tx < M) tx = M; else if (tx > GRID - M) tx = GRID - M;
+  if (ty < M) ty = M; else if (ty > GRID - M) ty = GRID - M;
+
+  const dist = Math.hypot(tx - s.x, ty - s.y);
+  const sub = Math.max(1, Math.ceil(dist / 0.34));
+  const sx = s.x, sy = s.y;
+  for (let k = 1; k <= sub; k++){
+    s.x = sx + (tx - sx) * k / sub;
+    s.y = sy + (ty - sy) * k / sub;
+    const cx = s.x | 0, cy = s.y | 0;
+    enterCell(s, cx, cy);
+    if (!s.alive) return;
+    grabPickups(s);
+    if (!s.alive) return;
+    grabMapItems(s);
+    if (!s.alive) return;
+  }
+  pushTrailPt(s);
+  pushBodyPt(s);
+}
+
+function pickBounty(){
+  const cand = snakes.filter(s => s.alive && !s.eliminated);
+  bountyId = cand.length ? cand[(Math.random() * cand.length) | 0].id : -1;
+}
+
 function stepWorld(){
-  maybeSpawnStar();
+  maybeSpawnPickups();
+  if (roundMode === 'contrat'){
+    if (bountyId < 0 || !snakes[bountyId] || !snakes[bountyId].alive) pickBounty();
+  }
+  stepMapItems();
+
+  // battle royale : la zone se resserre et efface le terrain qu'elle abandonne
+  if (roundMode === 'br'){
+    const r = zoneRadius();
+    if (r < lastClearR - 0.8){ clearOutsideZone(r); lastClearR = r; }
+  }
+
   for (const s of snakes){
     if (!s.alive){
-      if (s.respawnAt && now() >= s.respawnAt){
+      if (!s.eliminated && s.respawnAt && now() >= s.respawnAt){
         const spot = findFreeSpot();
-        if (spot){ placeSnake(s, spot[0], spot[1]); }
-        else s.respawnAt = now() + RESPAWN_MS;
+        if (spot){
+          placeSnake(s, spot[0], spot[1]);
+        } else if (now() >= s.respawnAt + RESPAWN_GRACE){
+          s.eliminated = true;
+          if (s.id === myId) onLocalEliminated();
+        }
       }
       continue;
     }
     if (!s.isHuman) botThink(s);
   }
-  for (const s of snakes){
-    if (!s.alive) continue;
-    const boosted = isStarred(s);
-    const ox = s.x, oy = s.y;
-    stepSnake(s);
-    if (boosted && s.alive){          // vitesse doublée pendant le bonus
-      stepSnake(s);
-      s.px = ox; s.py = oy;
+  for (const s of snakes){ if (s.alive) stepSnake(s); }
+
+  // mort hors zone, après un court sursis
+  if (roundMode === 'br'){
+    const r = zoneRadius(), c = GRID / 2;
+    for (const s of snakes){
+      if (!s.alive) continue;
+      if (Math.hypot(s.x - c, s.y - c) > r){
+        if (!s.outZoneSince) s.outZoneSince = now();
+        else if (now() - s.outZoneSince > OUTZONE_MS) killSnake(s, null);
+      } else s.outZoneSince = 0;
     }
   }
+
   stepBalls();
+
+  // dernier survivant et battle royale : la manche s'arrête quand il ne reste qu'un en lice
+  if ((roundMode === 'last' || roundMode === 'br') && running){
+    const inGame = snakes.filter(s => !s.eliminated);
+    if (inGame.length <= 1){
+      if (inGame.length === 1) scores[inGame[0].id] += LAST_BONUS;
+      endRound();
+    }
+  }
+
   stepCount++;
 }
 
 /* ==========================================================================
-   RÉSEAU — encodage du terrain
+   RÉSEAU — terrain
    ========================================================================== */
 function encodeTerritory(){
   const out = [];
@@ -944,10 +2322,20 @@ function encodeTerritory(){
 }
 
 function decodeTerritory(arr){
+  // on compare avec l'état précédent pour animer les zones qui changent de main
+  const gagnees = [];
+  for (let k = 0; k < SNAKES_DEF.length; k++) gagnees.push([]);
   let i = 0;
   for (let k = 0; k < arr.length; k += 2){
     const n = arr[k], v = arr[k+1];
-    for (let j = 0; j < n && i < TOTAL; j++) owner[i++] = v;
+    for (let j = 0; j < n && i < TOTAL; j++){
+      if (v >= 0 && owner[i] !== v) gagnees[v].push(i);
+      owner[i] = v;
+      i++;
+    }
+  }
+  for (let k = 0; k < gagnees.length; k++){
+    if (gagnees[k].length >= 12) buildRegionFx(gagnees[k], SNAKES_DEF[k].rgb, 'gain');
   }
   counts.fill(0);
   for (let k = 0; k < TOTAL; k++) if (owner[k] >= 0) counts[owner[k]]++;
@@ -959,27 +2347,61 @@ function decodeTerritory(arr){
    ========================================================================== */
 function sendSnapshot(){
   if (!conn || !conn.open) return;
+  snapCount++;
+  const forceFull = (snapCount % RESYNC_EVERY === 0);
   const g = snakes[1];
-  const msg = {
-    t: 's',
-    n: snakes.map(s => ({
-      x:s.x, y:s.y, px:s.px, py:s.py, dx:s.dx, dy:s.dy,
+
+  const n = snakes.map((s, i) => {
+    let full = 0, tp;
+    if (forceFull || sentVer[i] !== s.trailVer || sentCnt[i] > s.trailPts.length){
+      full = 1;
+      tp = s.trailPts.slice(0);
+      sentVer[i] = s.trailVer;
+      sentCnt[i] = s.trailPts.length;
+    } else {
+      tp = s.trailPts.slice(sentCnt[i]);
+      sentCnt[i] = s.trailPts.length;
+    }
+    return {
+      x:r2(s.x), y:r2(s.y), px:r2(s.px), py:r2(s.py), an:r2(s.ang),
       a: s.alive ? 1 : 0,
+      el: s.eliminated ? 1 : 0,
       i: isInvisible(s) ? 1 : 0,
       st: isStarred(s) ? 1 : 0,
-      tr: s.trail,
-      rc: s.recent,
-    })),
-    sp: stars.map(st => [st.x, st.y]),
-    b: balls.map(b => ({ x:b.x, y:b.y, px:b.px, py:b.py, c:b.id })),
+      bo: isBoosted(s) ? 1 : 0,
+      tv: s.trailVer, tc: s.trailCount, f: full, tp,
+      bp: s.bodyPts,
+    };
+  });
+
+  const msg = {
+    t:'s', n,
+    b: balls.map(b => ({ x:r2(b.x), y:r2(b.y), px:r2(b.px), py:r2(b.py), c:b.id })),
+    sp: stars.map(st => [r2(st.x), r2(st.y)]),
+    gm: gems.map(g => [r2(g.x), r2(g.y)]),
+    bm: bombs.map(b => [r2(b.x), r2(b.y)]),
+    pd: pending.map(q => [q.kind === 'star' ? 0 : 1, r2(q.x), r2(q.y), Math.max(0, q.at - now())]),
+    pl: planets.length ? planets.map(q => [r2(q.x), r2(q.y), q.owner, r2(q.rot), r2(Math.hypot(q.vx, q.vy))]) : undefined,
+    sk: sparks.length ? sparks.map(q => [r2(q.x), r2(q.y)]) : undefined,
+    dz: dashes.map(q => [r2(q.x), r2(q.y), DASH_COLORS.indexOf(q.c)]),
+    sh: shells.length ? shells.map(q => [r2(q.x), r2(q.y)]) : undefined,
+    vo: volcanoes.length ? volcanoes.map(q => [r2(q.x), r2(q.y), Math.round(q.eruptAt - now())]) : undefined,
+    fx: pendingFx.length ? pendingFx.slice(0) : undefined,
+    md: roundMode,
+    bt: bountyId,
+    zr: roundMode === 'br' ? r2(zoneRadius()) : undefined,
     cd: [
       Math.max(0, g.skillReadyAt - now()),
       Math.max(0, g.ballReadyAt  - now()),
       Math.max(0, g.invisUntil   - now()),
       Math.max(0, g.respawnAt ? g.respawnAt - now() : 0),
       Math.max(0, g.starUntil - now()),
+      g.capStreak || 0,
+      Math.max(0, g.trappedUntil - now()),
     ],
+    ev: pendingEv.length ? pendingEv.slice(0) : undefined,
     sc: Array.from(scores),
+    gs: [stats[1].k, stats[1].c, r2(stats[1].m), stats[1].g],
     tl: Math.max(0, roundEndsAt - now()),
   };
   if (netTerrDirty && stepCount % TERR_EVERY === 0){
@@ -987,24 +2409,27 @@ function sendSnapshot(){
     netTerrDirty = false;
   }
   try { conn.send(msg); } catch(e){}
+  pendingFx.length = 0;
+  pendingEv.length = 0;
 }
 
 function handleGuestData(d){
-  // anti-flood : on ignore au-delà de MAX_MSG_SEC messages par seconde
   const t = now();
   if (t - msgWindow > 1000){ msgWindow = t; msgCount = 0; }
   if (++msgCount > MAX_MSG_SEC) return;
 
   if (!d || typeof d !== 'object') return;
+  if (d.t === 'hi'){
+    remote.name = cleanName(d.n);
+    remote.skin = (SKINS.find(x => x.id === d.s) || SKINS[1]).id;
+    return;
+  }
   const g = snakes[1];
   if (!g || !g.isHuman || !g.alive) return;
-
-  if (d.t === 'd'){
-    const dx = Math.sign(d.dx | 0), dy = Math.sign(d.dy | 0);
-    if (Math.abs(dx) + Math.abs(dy) !== 1) return;       // direction invalide
-    const blocked = !inBounds(g.x + g.dx, g.y + g.dy);
-    if (!blocked && dx === -g.dx && dy === -g.dy) return; // demi-tour interdit hors blocage
-    g.nextDx = dx; g.nextDy = dy;
+  if (d.t === 'a'){
+    const a = Number(d.a);
+    if (!isFinite(a)) return;                    // valeur invalide ignorée
+    g.wantAng = a;
   } else if (d.t === 'k'){
     trySkill(g);
   } else if (d.t === 'b'){
@@ -1017,44 +2442,84 @@ function handleGuestData(d){
    ========================================================================== */
 function applySnapshot(d){
   const me0 = snakes[myId];
-  const prevLen = me0 ? me0.trail.length : 0;
+  const prevLen = me0 ? me0.trailCount : 0;
   const wasAlive = me0 ? me0.alive : false;
   const wasStar = me0 ? isStarred(me0) : false;
+  const wasElim = me0 ? me0.eliminated : false;
   const prevScore = scores[myId];
+  const vivantsAvant = snakes.map(x => x.alive);
 
   if (d.g) decodeTerritory(d.g);
+
   for (let i = 0; i < snakes.length && i < d.n.length; i++){
     const s = snakes[i], n = d.n[i];
     s.px = n.px; s.py = n.py;
     s.x = n.x; s.y = n.y;
-    s.dx = n.dx; s.dy = n.dy;
+    s.ang = n.an;
     s.alive = !!n.a;
-    s.invisUntil = n.i ? now() + STEP_MS * 2 : 0;
-    s.starUntil = n.st ? now() + STEP_MS * 2 : 0;
-    s.trail = n.tr || [];
-    s.recent = n.rc || [];
+    s.eliminated = !!n.el;
+    s.invisUntil = n.i ? now() + STEP_MS * 3 : 0;
+    s.starUntil = n.st ? now() + STEP_MS * 3 : 0;
+    s.boostUntil = n.bo ? now() + STEP_MS * 3 : 0;
+    s.trailCount = n.tc;
+    s.bodyPts = n.bp || [];
+    if (n.f || s.trailVer !== n.tv){
+      s.trailPts = (n.tp || []).slice(0);
+      s.trailVer = n.tv;
+    } else if (n.tp && n.tp.length){
+      for (let k = 0; k < n.tp.length; k++) s.trailPts.push(n.tp[k]);
+    }
   }
+
   stars = (d.sp || []).map(a => ({ x:a[0], y:a[1], born: now() }));
+  gems  = (d.gm || []).map(a => ({ x:a[0], y:a[1], born: now() }));
+  bombs = (d.bm || []).map(a => ({ x:a[0], y:a[1], born: now() }));
+  pending = (d.pd || []).map(a => ({ kind: a[0] === 0 ? 'star' : 'bomb', x:a[1], y:a[2], at: now() + a[3] }));
+  planets = (d.pl || []).map(a => ({ x:a[0], y:a[1], owner:a[2], rot:a[3], vx:a[4], vy:0 }));
+  sparks  = (d.sk || []).map(a => ({ x:a[0], y:a[1], born: now() }));
+  dashes  = (d.dz || []).map(a => ({ x:a[0], y:a[1], born: now(),
+                                     c: DASH_COLORS[a[2] >= 0 ? a[2] : 0] }));
+  shells  = (d.sh || []).map(a => ({ x:a[0], y:a[1], born: now() }));
+  volcanoes = (d.vo || []).map(a => ({ x:a[0], y:a[1], eruptAt: now() + a[2] }));
+  if (pending.length > prevPending && pending.length) sfxAlert(pending[pending.length - 1].kind);
+  prevPending = pending.length;
+  if (d.fx) for (const f of d.fx){
+    const kind = f[2] === 1 ? 'zap' : 'boom';
+    fxs.push({ x:f[0], y:f[1], t0: now(), kind });
+    if (kind === 'boom') sfxBomb(); else { tone(1400, 0.06, 'square', 0.25, 400); burst(0.2, 0.22); }
+  }
+  if (d.md && d.md !== roundMode) applyMode(d.md);
+  if (d.bt != null) bountyId = d.bt;
+  if (d.zr != null) guestZoneR = d.zr;
   balls = (d.b || []).map(b => ({
     x:b.x, y:b.y, px:b.px, py:b.py, color: SNAKES_DEF[b.c].hex
   }));
+
   const me = snakes[myId];
   me.skillReadyAt = now() + d.cd[0];
   me.ballReadyAt  = now() + d.cd[1];
   me.invisUntil   = d.cd[2] > 0 ? now() + d.cd[2] : 0;
   me.respawnAt    = d.cd[3] > 0 ? now() + d.cd[3] : 0;
-  const hadStar = wasStar;
   me.starUntil    = d.cd[4] > 0 ? now() + d.cd[4] : 0;
-  if (!hadStar && d.cd[4] > 0) onLocalStar();
+  me.capStreak    = d.cd[5] || 0;
+  me.trappedUntil = d.cd[6] > 0 ? now() + d.cd[6] : 0;
+  if (d.ev) for (const e of d.ev) applyEvent(e[0], e[1], e[2]);
+  if (!wasStar && d.cd[4] > 0) onLocalStar();
   if (d.sc) for (let i = 0; i < scores.length && i < d.sc.length; i++) scores[i] = d.sc[i];
+  if (d.gs && stats[myId]){
+    stats[myId].k = d.gs[0]; stats[myId].c = d.gs[1];
+    stats[myId].m = d.gs[2]; stats[myId].g = d.gs[3];
+  }
   if (d.tl != null) roundEndsAt = now() + d.tl;
 
-  // retours locaux reconstitués à partir de l'état reçu
-  const newLen = me.trail.length;
-  if (newLen === 0 && prevLen > 0 && scores[myId] > prevScore){
+  if (me.trailCount === 0 && prevLen > 0 && scores[myId] > prevScore){
     onLocalCapture(scores[myId] - prevScore, Math.min(MULT_MAX, 1 + prevLen / MULT_DIV), me.x, me.y);
   }
-  if (wasAlive && !me.alive) onLocalDeath();
+  if (wasAlive && !me.alive){ onLocalDeath(); kick(1.5, 0.055); }
+  for (let i = 0; i < snakes.length; i++){
+    if (vivantsAvant[i] && !snakes[i].alive) burstParts(snakes[i].x, snakes[i].y, SNAKES_DEF[i].rgb, 22);
+  }
+  if (!wasElim && me.eliminated) onLocalEliminated();
 
   lastSnapAt = now();
   if (!running){ running = true; hideAllOverlays(); }
@@ -1069,6 +2534,26 @@ function sendToHost(obj){
    ========================================================================== */
 let camX = GRID / 2, camY = GRID / 2, camScale = 16;
 
+// petite couronne au-dessus du snake qui mène au score
+function drawCrown(x, y, r){
+  const w = r * 1.55, h = r * 0.9, yy = y - r * 1.9;
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.6, yy + h * 0.5);
+  ctx.lineTo(x - w * 0.6, yy - h * 0.5);
+  ctx.lineTo(x - w * 0.2, yy + h * 0.08);
+  ctx.lineTo(x,           yy - h * 0.72);
+  ctx.lineTo(x + w * 0.2, yy + h * 0.08);
+  ctx.lineTo(x + w * 0.6, yy - h * 0.5);
+  ctx.lineTo(x + w * 0.6, yy + h * 0.5);
+  ctx.closePath();
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = r * 0.42;
+  ctx.strokeStyle = OUTLINE;
+  ctx.stroke();
+  ctx.fillStyle = '#fde047';
+  ctx.fill();
+}
+
 function drawStarShape(cx, cy, r){
   ctx.beginPath();
   for (let i = 0; i < 10; i++){
@@ -1081,123 +2566,586 @@ function drawStarShape(cx, cy, r){
   ctx.fill();
 }
 
+// trace une polyligne (tableau plat x,y,x,y…) avec un point de tête optionnel
+function pathPoints(pts, S, headX, headY){
+  ctx.beginPath();
+  if (pts.length >= 2){
+    ctx.moveTo(pts[0] * S, pts[1] * S);
+    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i] * S, pts[i+1] * S);
+    if (headX != null) ctx.lineTo(headX * S, headY * S);
+  } else if (headX != null){
+    ctx.moveTo(headX * S, headY * S);
+    ctx.lineTo(headX * S + 0.01, headY * S);
+  }
+}
+
+// Corps en dégradé continu.
+// On ne touche pas à l'opacité : on assombrit la couleur elle-même vers la queue.
+// Les traits restent opaques, donc leurs chevauchements ne se voient pas et la
+// transition est parfaitement lisse, même quand le tracé s'enroule.
+function strokeFaded(pts, S, hx, hy, rgb, width, base, tailF){
+  const n = pts.length / 2;
+  if (n < 1) return;
+  ctx.lineWidth = width;
+  ctx.globalAlpha = base;
+
+  // snake invisible : un seul trait uni, sinon les superpositions translucides
+  // referaient apparaître des perles
+  if (base < 0.99){
+    ctx.strokeStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+    ctx.beginPath();
+    ctx.moveTo(pts[0] * S, pts[1] * S);
+    for (let i = 1; i < n; i++) ctx.lineTo(pts[i * 2] * S, pts[i * 2 + 1] * S);
+    ctx.lineTo(hx * S, hy * S);
+    ctx.stroke();
+    return;
+  }
+
+  const f0 = tailF == null ? TAIL_FADE : tailF;
+  const seg = Math.max(1, Math.ceil(n / 40));
+  for (let i0 = 0; i0 < n - 1; i0 += seg){
+    const i1 = Math.min(n - 1, i0 + seg);
+    const k = (n > 1) ? ((i0 + i1) * 0.5) / (n - 1) : 1;
+    const f = f0 + (1 - f0) * k;
+    ctx.strokeStyle = 'rgb(' + ((rgb[0] * f) | 0) + ',' + ((rgb[1] * f) | 0) + ',' + ((rgb[2] * f) | 0) + ')';
+    ctx.beginPath();
+    ctx.moveTo(pts[i0 * 2] * S, pts[i0 * 2 + 1] * S);
+    for (let i = i0 + 1; i <= i1; i++) ctx.lineTo(pts[i * 2] * S, pts[i * 2 + 1] * S);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+  ctx.beginPath();
+  ctx.moveTo(pts[(n - 1) * 2] * S, pts[(n - 1) * 2 + 1] * S);
+  ctx.lineTo(hx * S, hy * S);
+  ctx.stroke();
+}
+
 function render(alpha){
-  const p = snakes[myId];
+  const p = attract ? leaderSnake() : (isEliminated() ? spectateTarget() : snakes[myId]);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = '#080b14';
+  ctx.fillStyle = roundMap.bg;
   ctx.fillRect(0, 0, VW, VH);
   if (!p) return;
+  updateFlash();
+  drawAmbient();
 
   const pct = counts[myId] / TOTAL;
-  const wantCells = 28 + pct * 55;
+  const wantCells = 26 + pct * 50;
   const wantScale = Math.min(VW, VH) / wantCells;
   camScale += (wantScale - camScale) * 0.06;
 
   const hx = p.px + (p.x - p.px) * alpha;
   const hy = p.py + (p.y - p.py) * alpha;
-  camX += (hx - camX) * 0.25;
-  camY += (hy - camY) * 0.25;
+  camX += (hx - camX) * 0.22;
+  camY += (hy - camY) * 0.22;
 
-  const S = camScale;
-  const ox = VW / 2 - (camX + 0.5) * S;
-  const oy = VH / 2 - (camY + 0.5) * S;
+  shakeAmt *= 0.90;
+  punch *= 0.87;
+  if (shakeAmt < 0.01) shakeAmt = 0;
+  if (punch < 0.001) punch = 0;
+
+  const S = camScale * (1 + punch);
+  const jx = shakeAmt ? (Math.random() - 0.5) * shakeAmt * S : 0;
+  const jy = shakeAmt ? (Math.random() - 0.5) * shakeAmt * S : 0;
+  const ox = VW / 2 - camX * S + jx;
+  const oy = VH / 2 - camY * S + jy;
 
   ctx.save();
   ctx.translate(ox, oy);
 
-  ctx.fillStyle = '#111830';
-  ctx.fillRect(0, 0, GRID * S, GRID * S);
+  // plateau
+  // pas de sol séparé : le fond de la carte traverse aussi l'arène.
+  // on assombrit seulement l'extérieur pour que les limites restent lisibles.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-GRID * S * 2, -GRID * S * 2, GRID * S * 5, GRID * S * 5);
+  ctx.rect(0, 0, GRID * S, GRID * S);
+  ctx.fillStyle = 'rgba(0,0,0,.42)';
+  ctx.fill('evenodd');
+  ctx.restore();
 
-  if (territoryDirty) rebuildTerritory();
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(terr, 0, 0, GRID * S, GRID * S);
+  if (territoryDirty && now() - shapesAt > 80){
+    rebuildTerritory();
+    buildTerritoryShapes();
+    shapesAt = now();
+  }
 
   const x0 = Math.max(0, Math.floor(-ox / S)), x1 = Math.min(GRID, Math.ceil((VW - ox) / S));
   const y0 = Math.max(0, Math.floor(-oy / S)), y1 = Math.min(GRID, Math.ceil((VH - oy) / S));
-  if (S > 9){
-    ctx.strokeStyle = 'rgba(255,255,255,.045)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = x0; x <= x1; x++){ ctx.moveTo(x * S, y0 * S); ctx.lineTo(x * S, y1 * S); }
-    for (let y = y0; y <= y1; y++){ ctx.moveTo(x0 * S, y * S); ctx.lineTo(x1 * S, y * S); }
-    ctx.stroke();
+
+  // simples points de repère sur le terrain neutre, pas de quadrillage
+  ctx.fillStyle = roundMap.dot;
+  const gap = 4;
+  const dot = Math.max(1, S * 0.075);
+  for (let x = Math.ceil(x0 / gap) * gap; x <= x1; x += gap){
+    for (let y = Math.ceil(y0 / gap) * gap; y <= y1; y += gap){
+      ctx.beginPath(); ctx.arc(x * S, y * S, dot, 0, 6.2832); ctx.fill();
+    }
   }
 
-  ctx.strokeStyle = 'rgba(255,255,255,.22)';
-  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // territoires : formes arrondies avec contour, cohérentes avec les tracés
+  ctx.save();
+  ctx.scale(S, S);
+  for (let id = 0; id < SNAKES_DEF.length; id++){
+    const loops = terrLoops[id];
+    if (!loops || !loops.length) continue;
+    const p = terrPath[id];
+    if (!p){
+      ctx.beginPath();
+      for (const pts of loops){
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.closePath();
+      }
+    }
+    const def = SNAKES_DEF[id];
+    ctx.fillStyle = getPattern(def.pat, def.rgb, def.soft) || def.fill;
+    if (p) ctx.fill(p, 'nonzero'); else ctx.fill('nonzero');
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 0.44;
+    if (p) ctx.stroke(p); else ctx.stroke();
+    ctx.strokeStyle = SNAKES_DEF[id].hex;
+    ctx.lineWidth = 0.26;
+    if (p) ctx.stroke(p); else ctx.stroke();
+  }
+  ctx.restore();
+
+  // bordure épaisse façon cartoon
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = S * 0.8;
   ctx.strokeRect(0, 0, GRID * S, GRID * S);
 
   // étoiles bonus
   const pulse = 1 + Math.sin(now() / 210) * 0.16;
   for (const st of stars){
     ctx.save();
+    ctx.fillStyle = OUTLINE;
+    drawStarShape(st.x * S, st.y * S, S * 1.45 * pulse);
     ctx.shadowColor = 'rgba(253,224,71,.95)';
     ctx.shadowBlur = S * 1.6;
     ctx.fillStyle = '#fde047';
-    drawStarShape((st.x + 0.5) * S, (st.y + 0.5) * S, S * 1.2 * pulse);
+    drawStarShape(st.x * S, st.y * S, S * 1.2 * pulse);
     ctx.restore();
   }
 
-  for (const s of snakes){
-    if (!s.alive) continue;
-    const inv = isInvisible(s);
-    const mine = s.id === myId;
-    ctx.globalAlpha = inv ? (mine ? 0.32 : 0.10) : 1;
-    ctx.fillStyle = s.color;
+  // bonus annoncés : balise qui se resserre avec le compte à rebours
+  for (const p2 of pending){
+    const k = Math.max(0, Math.min(1, (p2.at - now()) / TELE_MS));
+    const col = p2.kind === 'star' ? '#fde047' : '#fb7185';
+    ctx.save();
+    ctx.globalAlpha = 0.45 + 0.4 * Math.abs(Math.sin(now() / 130));
+    ctx.strokeStyle = col;
+    ctx.lineWidth = S * 0.22;
+    ctx.setLineDash([S * 0.8, S * 0.55]);
+    ctx.beginPath(); ctx.arc(p2.x * S, p2.y * S, S * (1.3 + k * 4.6), 0, 6.2832); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = col;
+    ctx.font = '800 ' + Math.max(11, S * 1.3) + 'px ui-rounded, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(Math.ceil((p2.at - now()) / 1000)), p2.x * S, p2.y * S + S * 0.5);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
 
-    for (let i = 0; i < s.trail.length; i++){
-      const idx = s.trail[i];
-      ctx.fillRect((idx % GRID) * S, ((idx / GRID) | 0) * S, S, S);
-    }
-    if (!s.trail.length){
-      for (let i = 0; i < s.recent.length; i++){
-        const idx = s.recent[i];
-        ctx.globalAlpha = (inv ? 0.2 : 0.55) * ((i + 1) / s.recent.length);
-        ctx.fillRect((idx % GRID) * S, ((idx / GRID) | 0) * S, S, S);
-      }
-      ctx.globalAlpha = inv ? (mine ? 0.32 : 0.10) : 1;
-    }
-
-    const sx = (s.px + (s.x - s.px) * alpha + 0.5) * S;
-    const sy = (s.py + (s.y - s.py) * alpha + 0.5) * S;
-    const r = S * 0.62;
-    ctx.beginPath();
-    ctx.arc(sx, sy, r, 0, 6.2832);
-    ctx.fill();
-    if (mine){
-      ctx.strokeStyle = 'rgba(255,255,255,.9)';
-      ctx.lineWidth = Math.max(1.5, S * 0.10);
-      ctx.stroke();
-    } else if (s.isHuman){
-      ctx.strokeStyle = 'rgba(255,255,255,.45)';
-      ctx.lineWidth = Math.max(1.2, S * 0.07);
-      ctx.stroke();
-    }
-    if (isStarred(s)){
+  // volcans, toujours visibles, avec grondement puis coulée
+  for (const v of volcanoes){
+    const st = volcState(v);
+    const t2 = now();
+    if (st === 'grondement'){
+      const k = 1 - (v.eruptAt - t2) / WARN_MS;
       ctx.save();
-      ctx.shadowColor = 'rgba(253,224,71,.95)';
-      ctx.shadowBlur = S * 1.5;
-      ctx.strokeStyle = '#fde047';
-      ctx.lineWidth = Math.max(2, S * 0.24);
-      ctx.beginPath(); ctx.arc(sx, sy, r * 1.3, 0, 6.2832); ctx.stroke();
+      ctx.globalAlpha = 0.25 + k * 0.35;
+      ctx.strokeStyle = '#fb923c';
+      ctx.lineWidth = S * 0.3;
+      ctx.setLineDash([S * 0.9, S * 0.6]);
+      ctx.beginPath(); ctx.arc(v.x * S, v.y * S, LAVA_R * S * (0.4 + k * 0.6), 0, 6.2832); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    } else if (st === 'eruption'){
+      const k = (t2 - v.eruptAt) / ERUPT_MS;
+      ctx.save();
+      ctx.shadowColor = 'rgba(249,115,22,.95)';
+      ctx.shadowBlur = S * 2.2;
+      ctx.globalAlpha = 0.55 + 0.25 * Math.abs(Math.sin(t2 / 90));
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath(); ctx.arc(v.x * S, v.y * S, LAVA_R * S, 0, 6.2832); ctx.fill();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath(); ctx.arc(v.x * S, v.y * S, LAVA_R * S * (0.35 + 0.2 * Math.sin(t2 / 70)), 0, 6.2832); ctx.fill();
       ctx.restore();
     }
-    const ex = -s.dy * r * 0.34, ey = s.dx * r * 0.34;
-    const fx = s.dx * r * 0.3,  fy = s.dy * r * 0.3;
-    ctx.fillStyle = '#0b1020';
-    ctx.beginPath(); ctx.arc(sx + fx + ex, sy + fy + ey, r * 0.2, 0, 6.2832); ctx.fill();
-    ctx.beginPath(); ctx.arc(sx + fx - ex, sy + fy - ey, r * 0.2, 0, 6.2832); ctx.fill();
+    // le cône
+    ctx.fillStyle = OUTLINE;
+    ctx.beginPath();
+    ctx.moveTo((v.x - 1.9) * S, (v.y + 1.5) * S);
+    ctx.lineTo(v.x * S, (v.y - 1.7) * S);
+    ctx.lineTo((v.x + 1.9) * S, (v.y + 1.5) * S);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#57534e';
+    ctx.beginPath();
+    ctx.moveTo((v.x - 1.4) * S, (v.y + 1.1) * S);
+    ctx.lineTo(v.x * S, (v.y - 1.15) * S);
+    ctx.lineTo((v.x + 1.4) * S, (v.y + 1.1) * S);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#f97316';
+    ctx.beginPath(); ctx.arc(v.x * S, (v.y - 1.05) * S, S * 0.42, 0, 6.2832); ctx.fill();
+  }
+
+  // planètes poussables
+  for (const pl of planets){
+    const col = pl.owner >= 0 ? SNAKES_DEF[pl.owner].hex : '#94a3b8';
+    const px2 = pl.x * S, py2 = pl.y * S;
+    const vite = (mode === 'guest' ? pl.vx : Math.hypot(pl.vx, pl.vy)) > PLANET_DEAD;
+    ctx.save();
+    if (vite){ ctx.shadowColor = col; ctx.shadowBlur = S * 2; }
+    ctx.fillStyle = OUTLINE;
+    ctx.beginPath(); ctx.arc(px2, py2, (PLANET_R + 0.32) * S, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(px2, py2, PLANET_R * S, 0, 6.2832); ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.translate(px2, py2);
+    ctx.rotate(pl.rot);
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(-PLANET_R * S * 0.35, -PLANET_R * S * 0.2, PLANET_R * S * 0.28, 0, 6.2832); ctx.fill();
+    ctx.beginPath(); ctx.arc(PLANET_R * S * 0.3, PLANET_R * S * 0.35, PLANET_R * S * 0.19, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-PLANET_R * S * 0.3, -PLANET_R * S * 0.45, PLANET_R * S * 0.22, 0, 6.2832); ctx.fill();
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 
-  for (const b of balls){
-    const bx = (b.px + (b.x - b.px) * alpha + 0.5) * S;
-    const by = (b.py + (b.y - b.py) * alpha + 0.5) * S;
-    ctx.fillStyle = b.color;
-    ctx.beginPath(); ctx.arc(bx, by, S * 0.45, 0, 6.2832); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.9)';
-    ctx.beginPath(); ctx.arc(bx, by, S * 0.18, 0, 6.2832); ctx.fill();
+  // éclairs à ramasser
+  for (const sk of sparks){
+    const x2 = sk.x * S, y2 = sk.y * S, r = S * 1.5 * pulse;
+    ctx.save();
+    ctx.shadowColor = 'rgba(191,219,254,.95)';
+    ctx.shadowBlur = S * 1.6;
+    for (const [col, w] of [[OUTLINE, r * 0.42], ['#e0f2fe', r * 0.24]]){
+      ctx.strokeStyle = col; ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(x2 + r * 0.28, y2 - r);
+      ctx.lineTo(x2 - r * 0.22, y2 - r * 0.05);
+      ctx.lineTo(x2 + r * 0.18, y2 + r * 0.05);
+      ctx.lineTo(x2 - r * 0.3, y2 + r);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
+
+  // coquillages
+  for (const sh of shells){
+    const x2 = sh.x * S, y2 = sh.y * S, r = S * 1.25;
+    ctx.save();
+    ctx.fillStyle = OUTLINE;
+    ctx.beginPath(); ctx.arc(x2, y2, r * 1.18, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#f9a8d4';
+    ctx.beginPath(); ctx.arc(x2, y2, r, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.3)';
+    ctx.lineWidth = S * 0.12;
+    for (let a = -2.4; a <= -0.7; a += 0.42){
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 + Math.cos(a) * r, y2 + Math.sin(a) * r);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // pastilles de vitesse
+  for (const d of dashes){
+    const col = 'rgb(' + d.c.join(',') + ')';
+    const r = S * 0.5 * (1 + Math.sin(now() / 180 + d.x) * 0.16);
+    ctx.save();
+    ctx.shadowColor = col;
+    ctx.shadowBlur = S * 0.9;
+    ctx.fillStyle = OUTLINE;
+    ctx.beginPath(); ctx.arc(d.x * S, d.y * S, r * 1.5, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(d.x * S, d.y * S, r, 0, 6.2832); ctx.fill();
+    ctx.restore();
+  }
+
+  // gemmes
+  for (const g of gems){
+    const gx = g.x * S, gy = g.y * S, r = S * 0.95 * pulse;
+    ctx.save();
+    ctx.translate(gx, gy);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = OUTLINE;
+    ctx.fillRect(-r * 0.82, -r * 0.82, r * 1.64, r * 1.64);
+    ctx.shadowColor = 'rgba(103,232,249,.9)';
+    ctx.shadowBlur = S * 1.2;
+    ctx.fillStyle = '#67e8f9';
+    ctx.fillRect(-r * 0.58, -r * 0.58, r * 1.16, r * 1.16);
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.fillRect(-r * 0.5, -r * 0.5, r * 0.4, r * 0.4);
+    ctx.restore();
+  }
+
+  // bombes
+  for (const b of bombs){
+    const bx = b.x * S, by = b.y * S, r = S * 1.05;
+    const blink = 0.55 + Math.abs(Math.sin(now() / 260)) * 0.45;
+    ctx.save();
+    ctx.shadowColor = 'rgba(248,113,113,' + blink.toFixed(2) + ')';
+    ctx.shadowBlur = S * 1.7;
+    ctx.fillStyle = OUTLINE;
+    ctx.beginPath(); ctx.arc(bx, by, r * 1.16, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = '#3a4358';
+    ctx.beginPath(); ctx.arc(bx, by, r * 0.92, 0, 6.2832); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = '#fb7185';
+    ctx.lineWidth = S * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(bx + r * 0.4, by - r * 0.7);
+    ctx.quadraticCurveTo(bx + r * 1.1, by - r * 1.2, bx + r * 0.8, by - r * 1.7);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    ctx.beginPath(); ctx.arc(bx - r * 0.3, by - r * 0.3, r * 0.2, 0, 6.2832); ctx.fill();
+  }
+
+  // explosions
+  const tf = now();
+  for (let i = fxs.length - 1; i >= 0; i--){
+    const f = fxs[i];
+    const age = (tf - f.t0) / 700;
+    if (age >= 1){ fxs.splice(i, 1); continue; }
+    const zap = f.kind === 'zap';
+    const rr = (zap ? 12 : BOMB_R) * S;
+    ctx.globalAlpha = 1 - age;
+    ctx.strokeStyle = zap ? '#bfdbfe' : '#fca5a5';
+    ctx.lineWidth = S * (1.4 - age);
+    ctx.beginPath(); ctx.arc(f.x * S, f.y * S, rr * (0.25 + age * 0.9), 0, 6.2832); ctx.stroke();
+    ctx.globalAlpha = (1 - age) * 0.3;
+    ctx.fillStyle = zap ? '#dbeafe' : '#fecaca';
+    ctx.beginPath(); ctx.arc(f.x * S, f.y * S, rr * age * 0.85, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // zone de battle royale
+  if (roundMode === 'br'){
+    const r = zoneRadius(), c = GRID / 2;
+    if (r < GRID){
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-GRID * S, -GRID * S, GRID * S * 3, GRID * S * 3);
+      ctx.arc(c * S, c * S, r * S, 0, 6.2832, true);
+      ctx.fillStyle = 'rgba(190,18,60,.24)';
+      ctx.fill('evenodd');
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(248,113,113,.9)';
+      ctx.lineWidth = S * 0.42;
+      ctx.beginPath(); ctx.arc(c * S, c * S, r * S, 0, 6.2832); ctx.stroke();
+    }
+  }
+
+  // zones qui viennent de changer de main : vague qui balaie puis éclat
+  for (let i = regionFx.length - 1; i >= 0; i--){
+    const f = regionFx[i];
+    const dur = f.kind === 'gain' ? 340 : 520;
+    const age = (now() - f.t0) / dur;
+    if (age >= 1){ regionFx.splice(i, 1); continue; }
+    ctx.save();
+    ctx.scale(S, S);
+    if (f.path) ctx.clip(f.path);
+    else {
+      ctx.beginPath();
+      for (const pts of f.loops){
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+        ctx.closePath();
+      }
+      ctx.clip();
+    }
+    const box = [f.cx - f.r - 2, f.cy - f.r - 2, (f.r + 2) * 2, (f.r + 2) * 2];
+    if (f.kind === 'gain'){
+      ctx.globalAlpha = 0.4 * (1 - age) * (1 - age);
+      ctx.fillStyle = 'rgb(' + f.rgb.join(',') + ')';
+      ctx.fillRect(box[0], box[1], box[2], box[3]);
+      const rr = f.r * (0.1 + age * 1.35);
+      const g = ctx.createRadialGradient(f.cx, f.cy, Math.max(0.01, rr - f.r * 0.32), f.cx, f.cy, rr);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(0.7, 'rgba(255,255,255,' + (0.55 * (1 - age)).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = g;
+      ctx.fillRect(box[0], box[1], box[2], box[3]);
+    } else {
+      // dissolution : la couleur du perdant s'efface du centre vers l'extérieur
+      const rr = f.r * age * 1.15;
+      const g = ctx.createRadialGradient(f.cx, f.cy, rr, f.cx, f.cy, rr + f.r * 0.45 + 0.5);
+      const col = 'rgba(' + f.rgb.join(',') + ',';
+      g.addColorStop(0, col + '0)');
+      g.addColorStop(1, col + (0.75 * (1 - age * 0.55)).toFixed(3) + ')');
+      ctx.fillStyle = g;
+      ctx.fillRect(box[0], box[1], box[2], box[3]);
+    }
+    ctx.restore();
+  }
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // tracés : contour sombre puis couleur, pour le rendu cartoon
+  for (const s of snakes){
+    if (!s.alive) continue;
+    const inv = isInvisible(s);
+    const mine = !attract && s.id === myId;
+    ctx.globalAlpha = inv ? (mine ? 0.32 : 0.10) : 1;
+
+    const ix = s.px + (s.x - s.px) * alpha;
+    const iy = s.py + (s.y - s.py) * alpha;
+
+    const baseA = ctx.globalAlpha;
+    if (s.trailPts.length >= 2){
+      pathPoints(s.trailPts, S, ix, iy);
+      ctx.globalAlpha = baseA;
+      ctx.strokeStyle = OUTLINE;
+      ctx.lineWidth = (TRAIL_W + 0.42) * S;
+      ctx.stroke();
+      strokeFaded(s.trailPts, S, ix, iy, SNAKES_DEF[s.id].rgb, TRAIL_W * S, baseA);
+    } else if (s.bodyPts.length >= 2){
+      pathPoints(s.bodyPts, S, ix, iy);
+      ctx.globalAlpha = baseA;
+      ctx.strokeStyle = OUTLINE;
+      ctx.lineWidth = (TRAIL_W + 0.34) * S;
+      ctx.stroke();
+      // même dégradé que le tracé, en pleine opacité pour qu'il s'applique vraiment
+      strokeFaded(s.bodyPts, S, ix, iy, SNAKES_DEF[s.id].rgb, (TRAIL_W - 0.1) * S, baseA, 0.30);
+    }
+    ctx.globalAlpha = baseA;
+    ctx.globalAlpha = 1;
+  }
+
+  // boules
+  for (const b of balls){
+    const bx = (b.px + (b.x - b.px) * alpha) * S;
+    const by = (b.py + (b.y - b.py) * alpha) * S;
+    ctx.fillStyle = OUTLINE;
+    ctx.beginPath(); ctx.arc(bx, by, S * 0.72, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = b.color;
+    ctx.beginPath(); ctx.arc(bx, by, S * 0.52, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.beginPath(); ctx.arc(bx - S * 0.15, by - S * 0.15, S * 0.19, 0, 6.2832); ctx.fill();
+  }
+
+  // qui mène au score : il portera la couronne
+  let leadId = -1, leadSc = 0;
+  for (let i = 0; i < scores.length; i++){
+    if (scores[i] > leadSc){ leadSc = scores[i]; leadId = i; }
+  }
+
+  // têtes
+  for (const s of snakes){
+    if (!s.alive) continue;
+    const inv = isInvisible(s);
+    const mine = !attract && s.id === myId;
+    ctx.globalAlpha = inv ? (mine ? 0.35 : 0.10) : 1;
+
+    const sx = (s.px + (s.x - s.px) * alpha) * S;
+    const sy = (s.py + (s.y - s.py) * alpha) * S;
+    const r = HEAD_R * S;
+
+    if (isStarred(s)){
+      ctx.save();
+      ctx.shadowColor = 'rgba(253,224,71,.95)';
+      ctx.shadowBlur = S * 1.8;
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = S * 0.3;
+      ctx.beginPath(); ctx.arc(sx, sy, r * 1.35, 0, 6.2832); ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.fillStyle = OUTLINE;
+    ctx.beginPath(); ctx.arc(sx, sy, r * 1.22, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = s.color;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, 6.2832); ctx.fill();
+
+    if (now() < s.trappedUntil){
+      ctx.strokeStyle = '#f9a8d4';
+      ctx.lineWidth = S * 0.4;
+      ctx.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(now() / 110));
+      ctx.beginPath(); ctx.arc(sx, sy, r * 1.7, 0, 6.2832); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    if (mine || s.isHuman){
+      ctx.strokeStyle = mine ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.5)';
+      ctx.lineWidth = Math.max(1.5, S * (mine ? 0.16 : 0.1));
+      ctx.beginPath(); ctx.arc(sx, sy, r * 1.08, 0, 6.2832); ctx.stroke();
+    }
+
+    // petit souffle blanc pendant l'accélération
+    if (isBoosted(s) && !isStarred(s) && Math.random() < 0.4){
+      const a = s.ang + Math.PI + (Math.random() - 0.5) * 0.8;
+      parts.push({ x:s.x, y:s.y, vx:Math.cos(a) * 5, vy:Math.sin(a) * 5,
+                   t0: now(), life: 260 + Math.random() * 180,
+                   sz: 0.13 + Math.random() * 0.16, rgb:[226, 232, 240] });
+    }
+
+    // étincelles derrière le snake sous étoile
+    if (isStarred(s) && Math.random() < 0.3){
+      const a = s.ang + Math.PI + (Math.random() - 0.5) * 1.1;
+      parts.push({ x:s.x, y:s.y, vx:Math.cos(a) * 6, vy:Math.sin(a) * 6,
+                   t0: now(), life: 420 + Math.random() * 260,
+                   sz: 0.16 + Math.random() * 0.22, rgb:[253, 224, 71] });
+    }
+
+    if (roundMode === 'contrat' && s.id === bountyId){
+      ctx.save();
+      ctx.globalAlpha = (inv ? 0.35 : 1) * (0.55 + 0.45 * Math.abs(Math.sin(now() / 150)));
+      ctx.strokeStyle = '#fb7185';
+      ctx.lineWidth = S * 0.26;
+      ctx.beginPath(); ctx.arc(sx, sy, r * 1.75, 0, 6.2832); ctx.stroke();
+      ctx.setLineDash([S * 0.5, S * 0.4]);
+      ctx.beginPath(); ctx.arc(sx, sy, r * 2.3, 0, 6.2832); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    if (s.id === leadId && !attract){
+      ctx.save();
+      ctx.globalAlpha = inv ? 0.35 : 1;
+      drawCrown(sx, sy, r);
+      ctx.restore();
+    }
+
+    // yeux orientés vers la direction
+    const ca = Math.cos(s.ang), sa = Math.sin(s.ang);
+    const ex = -sa * r * 0.42, ey = ca * r * 0.42;
+    const fx = ca * r * 0.34,  fy = sa * r * 0.34;
+    for (const sign of [1, -1]){
+      const px2 = sx + fx + ex * sign, py2 = sy + fy + ey * sign;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(px2, py2, r * 0.32, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = OUTLINE;
+      ctx.beginPath(); ctx.arc(px2 + ca * r * 0.12, py2 + sa * r * 0.12, r * 0.16, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // particules
+  const tp = now();
+  for (let i = parts.length - 1; i >= 0; i--){
+    const q = parts[i];
+    const age = (tp - q.t0) / q.life;
+    if (age >= 1){ parts.splice(i, 1); continue; }
+    const px3 = q.x + q.vx * (tp - q.t0) / 1000 * (1 - age * 0.6);
+    const py3 = q.y + q.vy * (tp - q.t0) / 1000 * (1 - age * 0.6);
+    ctx.globalAlpha = (1 - age) * (1 - age);
+    ctx.fillStyle = 'rgb(' + q.rgb.join(',') + ')';
+    ctx.beginPath();
+    ctx.arc(px3 * S, py3 * S, q.sz * S * (1 - age * 0.4), 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 
   // points gagnés
   const tNow = now();
@@ -1206,17 +3154,64 @@ function render(alpha){
     const age = (tNow - f.t0) / 1100;
     if (age >= 1){ floaters.splice(i, 1); continue; }
     ctx.globalAlpha = 1 - age * age;
-    ctx.fillStyle = f.color;
-    ctx.font = '800 ' + Math.max(15, S * 1.5) + 'px ui-rounded, system-ui, sans-serif';
+    ctx.font = '800 ' + Math.max(15, S * 1.6) + 'px ui-rounded, system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(f.text, (f.x + 0.5) * S, (f.y + 0.5) * S - age * S * 3.5);
+    ctx.lineWidth = Math.max(2, S * 0.35);
+    ctx.strokeStyle = OUTLINE;
+    ctx.strokeText(f.text, f.x * S, f.y * S - age * S * 3.5);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, f.x * S, f.y * S - age * S * 3.5);
   }
   ctx.globalAlpha = 1;
   ctx.textAlign = 'left';
   ctx.restore();
 
-  drawMinimap();
-  drawJoystick();
+  if (roundMode === 'brouillard' && !attract) drawFog(S, ox, oy, hx, hy);
+  drawFlash();
+  if (!attract){ drawMinimap(); drawJoystick(); }
+}
+
+// on peint un voile opaque puis on y perce un trou autour du joueur
+// et sur tout son territoire
+function drawFog(S, ox, oy, hx, hy){
+  fogCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  fogCtx.clearRect(0, 0, VW, VH);
+  fogCtx.fillStyle = 'rgba(3,5,12,0.93)';
+  fogCtx.fillRect(0, 0, VW, VH);
+
+  fogCtx.globalCompositeOperation = 'destination-out';
+  const cx = ox + hx * S, cy = oy + hy * S, r = FOG_R * S;
+  const g = fogCtx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r);
+  g.addColorStop(0, 'rgba(0,0,0,1)');
+  g.addColorStop(0.65, 'rgba(0,0,0,0.92)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  fogCtx.fillStyle = g;
+  fogCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+  const mien = terrPath[myId];
+  const boucles = terrLoops[myId];
+  if (mien || (boucles && boucles.length)){
+    fogCtx.save();
+    fogCtx.translate(ox, oy);
+    fogCtx.scale(S, S);
+    fogCtx.fillStyle = 'rgba(0,0,0,0.88)';
+    if (mien) fogCtx.fill(mien, 'nonzero');
+    else {
+      fogCtx.beginPath();
+      for (const pts of boucles){
+        fogCtx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) fogCtx.lineTo(pts[i][0], pts[i][1]);
+        fogCtx.closePath();
+      }
+      fogCtx.fill('nonzero');
+    }
+    fogCtx.restore();
+  }
+  fogCtx.globalCompositeOperation = 'source-over';
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(fog, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 function drawMinimap(){
@@ -1231,7 +3226,15 @@ function drawMinimap(){
   ctx.beginPath(); ctx.roundRect(x, my, size, size, 10); ctx.fill(); ctx.stroke();
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(terr, x + 3, my + 3, size - 6, size - 6);
-  const p = snakes[myId];
+  for (const b of pending){
+    ctx.fillStyle = b.kind === 'star' ? '#fde047' : '#fb7185';
+    ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(now() / 130));
+    ctx.beginPath();
+    ctx.arc(x + 3 + (b.x / GRID) * (size - 6), my + 3 + (b.y / GRID) * (size - 6), 3.2, 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 0.92;
+  const p = isEliminated() ? spectateTarget() : snakes[myId];
   if (p && p.alive){
     ctx.fillStyle = '#fff';
     ctx.beginPath();
@@ -1242,31 +3245,37 @@ function drawMinimap(){
 }
 
 /* ==========================================================================
-   CONTRÔLES
+   CONTRÔLES — direction libre
    ========================================================================== */
 let joy = { active:false, ox:0, oy:0, cx:0, cy:0 };
+let lastSentAng = 99, lastAngSend = 0;
 
-function setDir(dx, dy){
+function setAngle(a){
   const p = snakes[myId];
   if (!running || !p || !p.alive) return;
-  const blocked = !inBounds(p.x + p.dx, p.y + p.dy);
-  if (!blocked && dx === -p.dx && dy === -p.dy) return;
-  if (mode === 'guest'){ sendToHost({ t:'d', dx, dy }); return; }
-  p.nextDx = dx; p.nextDy = dy;
+  if (mode === 'guest'){
+    const t = now();
+    if (Math.abs(angDiff(a, lastSentAng)) < 0.04 && t - lastAngSend < 200) return;
+    lastSentAng = a; lastAngSend = t;
+    sendToHost({ t:'a', a: r2(a) });
+    return;
+  }
+  p.wantAng = a;
 }
 
-function handleVector(vx, vy){
-  if (Math.hypot(vx, vy) < 14) return;
-  if (Math.abs(vx) > Math.abs(vy)) setDir(Math.sign(vx), 0);
-  else setDir(0, Math.sign(vy));
+function joyUpdate(){
+  const vx = joy.cx - joy.ox, vy = joy.cy - joy.oy;
+  if (Math.hypot(vx, vy) < 12) return;
+  setAngle(Math.atan2(vy, vx));
 }
 
 canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (isEliminated()){ cycleSpectate(); return; }
   const t = e.changedTouches[0];
   joy.active = true;
   joy.ox = joy.cx = t.clientX;
   joy.oy = joy.cy = t.clientY;
-  e.preventDefault();
 }, { passive:false });
 
 canvas.addEventListener('touchmove', e => {
@@ -1274,9 +3283,9 @@ canvas.addEventListener('touchmove', e => {
   const t = e.changedTouches[0];
   joy.cx = t.clientX; joy.cy = t.clientY;
   const vx = joy.cx - joy.ox, vy = joy.cy - joy.oy;
-  handleVector(vx, vy);
   const len = Math.hypot(vx, vy);
   if (len > 60){ joy.ox = joy.cx - vx / len * 60; joy.oy = joy.cy - vy / len * 60; }
+  joyUpdate();
   e.preventDefault();
 }, { passive:false });
 
@@ -1284,28 +3293,43 @@ canvas.addEventListener('touchend', () => { joy.active = false; });
 canvas.addEventListener('touchcancel', () => { joy.active = false; });
 
 let mouseDown = false;
-canvas.addEventListener('mousedown', e => { mouseDown = true; joy.active = true; joy.ox = joy.cx = e.clientX; joy.oy = joy.cy = e.clientY; });
+canvas.addEventListener('mousedown', e => {
+  if (isEliminated()){ cycleSpectate(); return; }
+  mouseDown = true; joy.active = true;
+  joy.ox = joy.cx = e.clientX; joy.oy = joy.cy = e.clientY;
+});
 canvas.addEventListener('mousemove', e => {
   if (!mouseDown) return;
   joy.cx = e.clientX; joy.cy = e.clientY;
-  handleVector(joy.cx - joy.ox, joy.cy - joy.oy);
+  const vx = joy.cx - joy.ox, vy = joy.cy - joy.oy;
+  const len = Math.hypot(vx, vy);
+  if (len > 60){ joy.ox = joy.cx - vx / len * 60; joy.oy = joy.cy - vy / len * 60; }
+  joyUpdate();
 });
 window.addEventListener('mouseup', () => { mouseDown = false; joy.active = false; });
 
+const keys = {};
 window.addEventListener('keydown', e => {
-  const k = e.key;
-  if (k === 'ArrowUp'    || k === 'z' || k === 'w') setDir(0, -1);
-  if (k === 'ArrowDown'  || k === 's') setDir(0, 1);
-  if (k === 'ArrowLeft'  || k === 'q' || k === 'a') setDir(-1, 0);
-  if (k === 'ArrowRight' || k === 'd') setDir(1, 0);
-  if (k === ' '){ useSkill(); e.preventDefault(); }
-  if (k === 'e' || k === 'Enter'){ useBall(); e.preventDefault(); }
+  keys[e.key] = true;
+  if (e.key === ' '){ useSkill(); e.preventDefault(); }
+  if (e.key === 'e' || e.key === 'Enter'){ useBall(); e.preventDefault(); }
+  keyAngle();
 });
+window.addEventListener('keyup', e => { keys[e.key] = false; keyAngle(); });
+
+function keyAngle(){
+  let dx = 0, dy = 0;
+  if (keys['ArrowLeft']  || keys['q'] || keys['a']) dx -= 1;
+  if (keys['ArrowRight'] || keys['d']) dx += 1;
+  if (keys['ArrowUp']    || keys['z'] || keys['w']) dy -= 1;
+  if (keys['ArrowDown']  || keys['s']) dy += 1;
+  if (dx || dy) setAngle(Math.atan2(dy, dx));
+}
 
 function drawJoystick(){
   if (!joy.active) return;
   ctx.save();
-  ctx.globalAlpha = 0.28;
+  ctx.globalAlpha = 0.26;
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(joy.ox, joy.oy, 46, 0, 6.2832); ctx.stroke();
   ctx.globalAlpha = 0.5;
@@ -1333,7 +3357,6 @@ function trySkill(s){
   s.skillReadyAt = now() + COOL_MS;
   return true;
 }
-
 function useSkill(){
   const p = snakes[myId];
   if (!running || !p || !p.alive) return;
@@ -1408,6 +3431,16 @@ const starHudEl = document.getElementById('starHud');
 const netEl = document.getElementById('netState');
 const respawnEl = document.getElementById('respawn');
 const respawnTxt = document.getElementById('respawnTxt');
+const gameoverEl = document.getElementById('gameover');
+const spectateEl = document.getElementById('spectate');
+const specNameEl = document.getElementById('specName');
+const skillsEl = document.getElementById('skills');
+const recLineEl = document.getElementById('recLine');
+const modeInfoEl = document.getElementById('modeInfo');
+const scoreLabelEl = document.getElementById('scoreLabel');
+const bigMsgEl = document.getElementById('bigmsg');
+const bigMsg1El = document.getElementById('bigMsg1');
+const bigMsg2El = document.getElementById('bigMsg2');
 const segments = [];
 
 function buildBar(){
@@ -1423,9 +3456,20 @@ function buildBar(){
 }
 
 function snakeLabel(i){
-  if (i === myId) return 'Toi';
-  if (snakes[i] && snakes[i].isHuman) return 'Ton ami';
-  return SNAKES_DEF[i].name;
+  return SNAKES_DEF[i].label || SNAKES_DEF[i].name;
+}
+
+// le score défile jusqu'à sa nouvelle valeur au lieu de sauter d'un coup
+function updateScoreTick(){
+  const cible = scores[myId];
+  if (scoreShown === cible) return;
+  const ecart = cible - scoreShown;
+  const pas = Math.max(1, Math.ceil(Math.abs(ecart) * 0.14));
+  scoreShown += Math.sign(ecart) * Math.min(pas, Math.abs(ecart));
+  scoreEl.textContent = scoreShown.toLocaleString('fr-FR');
+  scoreEl.classList.add('pop');
+  clearTimeout(popT);
+  popT = setTimeout(() => scoreEl.classList.remove('pop'), 150);
 }
 
 function updateHud(){
@@ -1434,18 +3478,125 @@ function updateHud(){
   }
   const mine = counts[myId] / TOTAL * 100;
   pctEl.textContent = (mine < 10 ? mine.toFixed(1) : Math.round(mine)) + '%';
-  scoreEl.textContent = scores[myId].toLocaleString('fr-FR');
 
   let rank = 1;
   for (let i = 0; i < scores.length; i++) if (i !== myId && scores[i] > scores[myId]) rank++;
-  rankEl.textContent = rank === 1 ? '1er' : rank + 'e';
+  if (pointsMult() === 1) rankEl.textContent = ord(rank);
+  if (running && !isEliminated()){
+    if (lastRank && rank !== lastRank){
+      addToast(ord(lastRank) + ' → ' + ord(rank), rank < lastRank ? '#86efac' : '#94a3b8');
+      if (rank < lastRank){
+        tone(700, 0.1, 'triangle', 0.3);
+        tone(950, 0.18, 'triangle', 0.26, null, 0.07);
+        vib(20);
+      }
+    }
+    lastRank = rank;
+  }
+
+  const meS = snakes[myId];
+  scoreLabelEl.textContent = (meS && meS.capStreak >= 3)
+    ? 'points · série ' + meS.capStreak
+    : 'points';
 
   const left = Math.max(0, roundEndsAt - now());
   const sec = Math.ceil(left / 1000);
   timerEl.textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
-  timerEl.className = (left < 30000 ? 'timer low' : 'timer');
+  const dbl = pointsMult() > 1;
+  timerEl.className = dbl ? 'timer dbl' : (left < 30000 ? 'timer low' : 'timer');
+  if (dbl){ rankEl.textContent = '×2 points'; rankEl.className = 'rank dbl'; }
+  else rankEl.className = 'rank';
+
+  // annonce du doublement, une seule fois par manche
+  if (running && dbl && !doubleAnnounced){
+    doubleAnnounced = true;
+    showBigMsg('Points doublés', 'Dernière minute', '#fde047');
+    sfxDouble();
+  }
+
+  // ligne propre au mode en cours
+  if (running && roundMode === 'contrat'){
+    modeInfoEl.classList.remove('hidden');
+    if (bountyId === myId){
+      modeInfoEl.textContent = '🎯 La prime est sur toi';
+      modeInfoEl.style.color = '#fca5a5';
+    } else if (bountyId >= 0){
+      modeInfoEl.textContent = '🎯 Prime : ' + snakeLabel(bountyId);
+      modeInfoEl.style.color = SNAKES_DEF[bountyId].hex;
+    } else {
+      modeInfoEl.textContent = '🎯 Prime en attribution…';
+      modeInfoEl.style.color = 'var(--ink-dim)';
+    }
+    if (bountyId !== prevBounty && prevBounty !== -1 && bountyId >= 0){
+      addToast(bountyId === myId ? 'La prime est sur toi !' : 'Prime sur ' + snakeLabel(bountyId), '#fca5a5');
+      tone(560, 0.1, 'square', 0.28);
+      tone(760, 0.18, 'square', 0.24, null, 0.08);
+    }
+    prevBounty = bountyId;
+  } else if (running && roundMode === 'croissance'){
+    const g = 1 + Math.min(GROW_MAX, counts[myId] / TOTAL * 1.8);
+    modeInfoEl.classList.remove('hidden');
+    modeInfoEl.textContent = '🏃 Vitesse ×' + g.toFixed(2);
+    modeInfoEl.style.color = g > 1.3 ? '#fdba74' : 'var(--ink)';
+  } else {
+    modeInfoEl.classList.add('hidden');
+  }
+
+  // objectif personnel affiché en permanence
+  if (running && profile.best > 0){
+    const diff = scores[myId] - profile.best;
+    if (diff >= 0){
+      recLineEl.textContent = 'Record battu · +' + diff.toLocaleString('fr-FR');
+      recLineEl.className = 'recline beat';
+      if (!recordAnnounced){
+        recordAnnounced = true;
+        showBigMsg('Record battu', profile.best.toLocaleString('fr-FR') + ' points dépassés', '#fde047');
+        tone(680, 0.16, 'triangle', 0.36);
+        tone(1020, 0.34, 'triangle', 0.3, null, 0.12);
+        vib([25, 45, 60]);
+      }
+    } else {
+      recLineEl.textContent = 'Record ' + profile.best.toLocaleString('fr-FR')
+        + ' · il manque ' + (-diff).toLocaleString('fr-FR');
+      recLineEl.className = 'recline';
+    }
+    recLineEl.classList.remove('hidden');
+  } else {
+    recLineEl.classList.add('hidden');
+  }
+
+  // bandeau central transitoire
+  if (now() - bigMsgAt < 2600){
+    bigMsg1El.textContent = bigMsgTxt;
+    bigMsg1El.style.color = bigMsgCol;
+    bigMsg2El.textContent = bigMsgSub;
+    bigMsgEl.classList.remove('hidden');
+  } else {
+    bigMsgEl.classList.add('hidden');
+  }
 
   const p = snakes[myId];
+  const elim = isEliminated();
+  skillsEl.style.display = elim ? 'none' : '';
+
+  if (elim){
+    respawnEl.classList.add('hidden');
+    multEl.classList.add('hidden');
+    starHudEl.classList.add('hidden');
+    if (now() - eliminatedAt < 2800) gameoverEl.classList.remove('hidden');
+    else gameoverEl.classList.add('hidden');
+    const tgt = spectateTarget();
+    if (running && tgt && tgt.alive){
+      spectateEl.classList.remove('hidden');
+      specNameEl.textContent = snakeLabel(tgt.id);
+    } else {
+      spectateEl.classList.add('hidden');
+    }
+    return;
+  }
+  gameoverEl.classList.add('hidden');
+  spectateEl.classList.add('hidden');
+
   if (running && p && isStarred(p)){
     starHudEl.classList.remove('hidden');
     starHudEl.textContent = '🌟 ' + Math.max(0, (p.starUntil - now()) / 1000).toFixed(1) + 's';
@@ -1453,8 +3604,8 @@ function updateHud(){
     starHudEl.classList.add('hidden');
   }
 
-  if (running && p && p.alive && p.trail.length > 0){
-    const m = Math.min(MULT_MAX, 1 + p.trail.length / MULT_DIV);
+  if (running && p && p.alive && p.trailCount > 0){
+    const m = Math.min(MULT_MAX, 1 + p.trailCount / MULT_DIV);
     multEl.classList.remove('hidden');
     multEl.textContent = '×' + m.toFixed(1);
     multEl.style.transform = 'scale(' + (1 + (m - 1) * 0.14).toFixed(3) + ')';
@@ -1471,6 +3622,148 @@ function updateHud(){
 }
 
 /* ==========================================================================
+   PROFIL : PSEUDO, SKINS, RECORD
+   ========================================================================== */
+const nameInput = document.getElementById('nameInput');
+const skinRow = document.getElementById('skinRow');
+const metaLine = document.getElementById('metaLine');
+
+function refreshMeta(){
+  document.getElementById('pRecord').textContent = profile.best.toLocaleString('fr-FR');
+  document.getElementById('pTotal').textContent = profile.total.toLocaleString('fr-FR');
+  const next = SKINS.find(k => profile.total < k.need);
+  const fill = document.getElementById('pFill');
+  const nx = document.getElementById('pNext');
+  if (next){
+    const prev = SKINS.filter(k => k.need <= profile.total).reduce((m, k) => Math.max(m, k.need), 0);
+    const pct = Math.max(0, Math.min(1, (profile.total - prev) / (next.need - prev)));
+    fill.style.width = (pct * 100).toFixed(1) + '%';
+    fill.style.background = next.hex;
+    nx.textContent = next.name + ' dans ' + (next.need - profile.total).toLocaleString('fr-FR') + ' points';
+  } else {
+    fill.style.width = '100%';
+    fill.style.background = '#fde047';
+    nx.textContent = 'Tous les skins débloqués';
+  }
+}
+
+// petit snake animé qui montre le skin choisi
+const pv = document.getElementById('preview');
+const pvx = pv.getContext('2d');
+
+// même tuile que sur le terrain, mise à l'échelle pour l'aperçu
+const previewPatCache = new Map();
+function getPatternPreview(skin){
+  if (!skin.pat) return null;
+  if (previewPatCache.has(skin.id)) return previewPatCache.get(skin.id);
+  const tuile = patTile(skin.pat, skin.rgb);
+  let pat = null;
+  if (tuile){
+    try {
+      pat = pvx.createPattern(tuile, 'repeat');
+      if (pat && pat.setTransform && typeof DOMMatrix !== 'undefined'){
+        pat.setTransform(new DOMMatrix([0.55, 0, 0, 0.55, 0, 0]));
+      }
+    } catch(e){ pat = null; }
+  }
+  previewPatCache.set(skin.id, pat);
+  return pat;
+}
+function drawPreview(){
+  const w = pv.clientWidth || 320, h = 74;
+  if (pv.width !== Math.round(w * dpr)){ pv.width = Math.round(w * dpr); pv.height = Math.round(h * dpr); }
+  pvx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  pvx.clearRect(0, 0, w, h);
+  const skin = SKINS.find(k => k.id === profile.skin) || SKINS[0];
+  const t = now() / 400;
+  const pts = [];
+  for (let i = 0; i <= 26; i++){
+    const x = 16 + (w - 50) * (i / 26);
+    const y = h / 2 + Math.sin(i * 0.42 - t) * (h * 0.19);
+    pts.push([x, y]);
+  }
+  // bandeau derrière le snake : aperçu du motif de territoire
+  const motif = getPatternPreview(skin);
+  if (motif){
+    pvx.save();
+    pvx.beginPath();
+    pvx.roundRect(6, 10, w - 12, h - 20, 14);
+    pvx.fillStyle = motif;
+    pvx.fill();
+    pvx.strokeStyle = skin.hex;
+    pvx.globalAlpha = .5;
+    pvx.lineWidth = 2;
+    pvx.stroke();
+    pvx.restore();
+  }
+
+  pvx.lineCap = 'round'; pvx.lineJoin = 'round';
+  pvx.beginPath();
+  pvx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) pvx.lineTo(pts[i][0], pts[i][1]);
+  pvx.strokeStyle = OUTLINE; pvx.lineWidth = 21; pvx.stroke();
+  const rgb = skin.rgb;
+  const sombre = 'rgb(' + ((rgb[0] * TAIL_FADE) | 0) + ',' + ((rgb[1] * TAIL_FADE) | 0)
+                        + ',' + ((rgb[2] * TAIL_FADE) | 0) + ')';
+  const grad = pvx.createLinearGradient(pts[0][0], 0, pts[pts.length - 1][0], 0);
+  grad.addColorStop(0, sombre);
+  grad.addColorStop(1, skin.hex);
+  pvx.strokeStyle = grad; pvx.lineWidth = 15; pvx.stroke();
+
+  const [hx, hy] = pts[pts.length - 1];
+  const [bx, by] = pts[pts.length - 3];
+  const ang = Math.atan2(hy - by, hx - bx);
+  pvx.fillStyle = OUTLINE; pvx.beginPath(); pvx.arc(hx, hy, 15.5, 0, 6.2832); pvx.fill();
+  pvx.fillStyle = skin.hex; pvx.beginPath(); pvx.arc(hx, hy, 12, 0, 6.2832); pvx.fill();
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  for (const sg of [1, -1]){
+    const ex = hx + ca * 4 - sa * 5.2 * sg, ey = hy + sa * 4 + ca * 5.2 * sg;
+    pvx.fillStyle = '#fff';   pvx.beginPath(); pvx.arc(ex, ey, 4.2, 0, 6.2832); pvx.fill();
+    pvx.fillStyle = OUTLINE;  pvx.beginPath(); pvx.arc(ex + ca * 1.7, ey + sa * 1.7, 2.1, 0, 6.2832); pvx.fill();
+  }
+}
+
+function buildSkins(){
+  skinRow.innerHTML = '';
+  for (const s of SKINS){
+    const locked = profile.total < s.need;
+    const b = document.createElement('button');
+    b.className = 'skinbtn' + (s.id === profile.skin ? ' sel' : '') + (locked ? ' lock' : '');
+    b.style.background = s.hex;
+    if (locked) b.textContent = '🔒';
+    b.addEventListener('click', () => {
+      if (locked){
+        metaLine.textContent = s.name + ' se débloque à ' + s.need.toLocaleString('fr-FR') + ' points cumulés';
+        return;
+      }
+      profile.skin = s.id;
+      store.set('skin', s.id);
+      buildSkins();
+      metaLine.textContent = 'Skin : ' + s.name;
+    });
+    skinRow.appendChild(b);
+  }
+}
+
+nameInput.value = profile.name;
+nameInput.addEventListener('input', () => {
+  profile.name = cleanName(nameInput.value);
+  store.set('name', profile.name);
+});
+nameInput.addEventListener('blur', () => { nameInput.value = profile.name; });
+
+function finishProfile(){
+  profile.total += scores[myId];
+  const record = scores[myId] > profile.best;
+  if (record) profile.best = scores[myId];
+  store.set('total', profile.total);
+  store.set('best', profile.best);
+  buildSkins();
+  refreshMeta();
+  return record;
+}
+
+/* ==========================================================================
    CYCLE DE PARTIE
    ========================================================================== */
 function resetGame(humans){
@@ -1481,12 +3774,39 @@ function resetGame(humans){
   balls = [];
   floaters = [];
   stars = [];
+  gems = [];
+  bombs = [];
+  dashes = [];
+  nextDashAt = now() + 1500;
+  pending = [];
+  fxs = [];
+  pendingFx = [];
+  regionFx = [];
+  parts = [];
+  scoreShown = 0;
+  shakeAmt = 0; punch = 0;
+  doubleAnnounced = false;
+  recordAnnounced = false;
+  pendingEv = [];
+  lastRank = 0;
+  toastBox.innerHTML = '';
+  prevPending = 0;
+  bigMsgAt = 0;
   nextStarAt = now() + 5000;
+  nextGemAt = now() + 2500;
+  nextBombAt = now() + BOMB_MIN;
+  lastClearR = 1e9;
+  initMapItems();
+  bountyId = -1; prevBounty = -1;
+  if (roundMode === 'contrat') pickBounty();
   roundEndsAt = now() + ROUND_MS;
+  eliminatedAt = 0;
+  spectateId = myId;
   territoryDirty = true;
   netTerrDirty = true;
   gameEnded = false;
-  stepCount = 0;
+  stepCount = 0; snapCount = 0;
+  sentVer.fill(-1); sentCnt.fill(0);
 
   snakes = [];
   for (let i = 0; i < SNAKES_DEF.length; i++) snakes.push(makeSnake(i, i < humans));
@@ -1498,7 +3818,8 @@ function resetGame(humans){
       Math.round(cx + Math.cos(a) * R),
       Math.round(cy + Math.sin(a) * R));
     if (!snakes[i].isHuman){
-      snakes[i].aggro = 0.15 + Math.random() * 0.4;
+      snakes[i].skill = 0.25 + Math.random() * 0.75;
+      snakes[i].aggro = 0.35 + Math.random() * 0.5;
       snakes[i].skillReadyAt = now() + COOL_MS;
       snakes[i].ballReadyAt = now() + BALL_COOL;
     } else {
@@ -1509,6 +3830,9 @@ function resetGame(humans){
 
   const p = snakes[myId];
   camX = p.x; camY = p.y;
+  shapesAt = 0;
+  rebuildTerritory();
+  buildTerritoryShapes();
   document.documentElement.style.setProperty('--me', p.color);
   updateHud();
 }
@@ -1521,10 +3845,38 @@ function hideAllOverlays(){
 function showScoreboard(){
   running = false;
   stopMusic();
+  gameoverEl.classList.add('hidden');
+  spectateEl.classList.add('hidden');
+  respawnEl.classList.add('hidden');
+  skillsEl.style.display = '';
+
   const board = document.getElementById('board');
   const order = [];
   for (let i = 0; i < SNAKES_DEF.length; i++) order.push(i);
   order.sort((a, b) => scores[b] - scores[a]);
+
+  const wid = order[0];
+  const winEl = document.getElementById('winner');
+  winEl.textContent = wid === myId ? 'Tu gagnes !' : snakeLabel(wid) + ' gagne';
+  winEl.style.color = SNAKES_DEF[wid].hex;
+
+  const podium = document.getElementById('podium');
+  podium.innerHTML = '';
+  const hauteurs = [80, 60, 46];
+  for (const pos of [1, 0, 2]){                    // 2e à gauche, 1er au centre
+    if (pos >= order.length) continue;
+    const i = order[pos];
+    const col = document.createElement('div');
+    col.className = 'pod';
+    col.innerHTML = '<div class="pname"></div><div class="pbarv"></div><div class="pscore"></div>';
+    col.querySelector('.pname').textContent = snakeLabel(i);
+    const bar = col.querySelector('.pbarv');
+    bar.style.height = hauteurs[pos] + 'px';
+    bar.style.background = SNAKES_DEF[i].hex;
+    bar.textContent = String(pos + 1);
+    col.querySelector('.pscore').textContent = scores[i].toLocaleString('fr-FR');
+    podium.appendChild(col);
+  }
 
   document.getElementById('endPct').textContent = scores[myId].toLocaleString('fr-FR');
   const pos = order.indexOf(myId) + 1;
@@ -1544,42 +3896,165 @@ function showScoreboard(){
     row.querySelector('.nm').textContent = snakeLabel(i);
     board.appendChild(row);
   }
+
+  const st = stats[myId] || { k:0, c:0, m:1, g:0 };
+  const cells = [
+    [st.k, 'snakes mangés'],
+    [st.c.toLocaleString('fr-FR'), 'meilleure capture'],
+    ['×' + st.m.toFixed(1), 'meilleur multiplicateur'],
+    [st.g, 'gemmes'],
+  ];
+  const box = document.getElementById('statBox');
+  box.innerHTML = '';
+  for (const [v, l] of cells){
+    const d = document.createElement('div');
+    d.className = 'stat';
+    d.innerHTML = '<b></b><span></span>';
+    d.querySelector('b').textContent = v;
+    d.querySelector('span').textContent = l;
+    box.appendChild(d);
+  }
+
+  const record = finishProfile();
+  const msgEl = document.getElementById('endMsg');
+  if (record){
+    msgEl.textContent = 'points — nouveau record !';
+    msgEl.className = 'sub record';
+  } else {
+    msgEl.className = 'sub';
+  }
+
   document.getElementById('endScreen').classList.remove('hidden');
 }
 
 function endRound(){
+  if (attract){ startAttract(); return; }
   if (gameEnded) return;
   gameEnded = true;
   showScoreboard();
   tone(560, 0.5, 'triangle', 0.4);
   tone(750, 0.6, 'triangle', 0.34, null, 0.14);
   if (mode === 'host' && conn && conn.open){
-    try { conn.send({ t:'end', sc: Array.from(scores), g: encodeTerritory() }); } catch(e){}
+    try { conn.send({ t:'end', sc: Array.from(scores), g: encodeTerritory(),
+                      gs: [stats[1].k, stats[1].c, r2(stats[1].m), stats[1].g] }); } catch(e){}
   }
 }
+
+function showRoulette(modeId, done){
+  const el = document.getElementById('rouletteScreen');
+  const nm = document.getElementById('rouletteName');
+  const ds = document.getElementById('rouletteDesc');
+  el.classList.remove('hidden');
+  ds.textContent = '\u00a0';
+  let i = 0, delay = 65, elapsed = 0;
+  const spin = () => {
+    nm.textContent = MODES[i % MODES.length].name;
+    tone(520 + (i % 3) * 130, 0.035, 'square', 0.16);
+    i++; elapsed += delay;
+    if (elapsed < 1200){
+      setTimeout(spin, delay);
+    } else if (delay < 300){
+      delay = Math.round(delay * 1.4);
+      setTimeout(spin, delay);
+    } else {
+      const m = MODES.find(x => x.id === modeId) || MODES[0];
+      nm.textContent = m.name;
+      ds.textContent = m.desc;
+      tone(660, 0.5, 'triangle', 0.4);
+      tone(990, 0.5, 'triangle', 0.3, null, 0.1);
+      vib([25, 40, 70]);
+      setTimeout(() => { el.classList.add('hidden'); done(); }, 950);
+    }
+  };
+  spin();
+}
+
+function applyMode(m){
+  roundMode = m;
+  lastClearR = 1e9;
+  document.getElementById('modeTag').textContent =
+    (MODES.find(x => x.id === m) || MODES[0]).name + ' · ' + roundMap.name;
+}
+
+function beginRound(humans, m, mapId){
+  stopAttract();
+  applyMap(mapId);
+  applyMode(m);
+  applyIdentities(humans);
+  resetStats();
+  resetGame(humans);
+  hideAllOverlays();
+  running = false;
+  showRoulette(m, () => {
+    roundEndsAt = now() + ROUND_MS;
+    nextStarAt = now() + 5000;
+    nextGemAt = now() + 2500;
+    nextBombAt = now() + BOMB_MIN;
+    running = true;
+    startMusic();
+    lastTime = now(); acc = 0;
+  });
+}
+
+// tirage pondéré : le mode normal sort deux fois moins souvent que les autres
+function randomMode(){
+  let total = 0;
+  for (const m of MODES) total += (m.w || 1);
+  let r = Math.random() * total;
+  for (const m of MODES){ r -= (m.w || 1); if (r <= 0) return m.id; }
+  return MODES[0].id;
+}
+
+// une vraie partie de bots tourne derrière le menu
+function leaderSnake(){
+  let b = null;
+  for (const s of snakes){
+    if (!s.alive) continue;
+    if (!b || counts[s.id] > counts[b.id]) b = s;
+  }
+  return b || snakes[0];
+}
+
+function startAttract(){
+  attract = true;
+  mode = 'solo'; myId = 0;
+  applyMap(randomMap());
+  applyMode('normal');
+  applyIdentities(1);
+  resetStats();
+  resetGame(0);                    // aucun humain : tout le monde joue tout seul
+  roundEndsAt = now() + ROUND_MS;
+  running = true;
+  lastTime = now(); acc = 0;
+  hudEl.classList.add('hidden');
+  skillsEl.style.display = 'none';
+  netEl.textContent = '';
+}
+
+function stopAttract(){
+  attract = false;
+  hudEl.classList.remove('hidden');
+  skillsEl.style.display = '';
+}
+function randomMap(){ return MAPS[(Math.random() * MAPS.length) | 0].id; }
 
 function startSolo(){
   initAudio();
   closePeer();
   mode = 'solo'; myId = 0;
-  resetGame(1);
-  hideAllOverlays();
   netEl.textContent = '';
-  running = true;
-  startMusic();
-  lastTime = now(); acc = 0;
+  beginRound(1, randomMode(), randomMap());
 }
 
 function startHostedGame(){
   initAudio();
   mode = 'host'; myId = 0;
-  resetGame(conn && conn.open ? 2 : 1);
-  hideAllOverlays();
   netEl.textContent = 'Hôte';
-  running = true;
-  startMusic();
-  lastTime = now(); acc = 0;
-  if (conn && conn.open) conn.send({ t:'go' });
+  const m = randomMode(), mp = randomMap();
+  if (conn && conn.open){
+    conn.send({ t:'go', md:m, mp, hn: profile.name, hs: profile.skin });
+  }
+  beginRound(conn && conn.open ? 2 : 1, m, mp);
 }
 
 /* ==========================================================================
@@ -1633,9 +4108,10 @@ function startHosting(retry){
   });
 
   peer.on('connection', c => {
-    if (conn && conn.open){ try { c.close(); } catch(e){} return; }   // une seule place
+    if (conn && conn.open){ try { c.close(); } catch(e){} return; }
     conn = c;
     c.on('open', () => {
+      sentVer.fill(-1); sentCnt.fill(0);
       hostStatus.textContent = 'Ton ami est connecté.';
       hostStatus.className = 'status ok';
       launchBtn.disabled = false;
@@ -1646,7 +4122,7 @@ function startHosting(retry){
     });
     c.on('data', handleGuestData);
     c.on('close', () => {
-      if (running && mode === 'host' && snakes[1]) snakes[1].isHuman = false;  // reprise par un bot
+      if (running && mode === 'host' && snakes[1]) snakes[1].isHuman = false;
       conn = null;
       netEl.textContent = 'Ami déconnecté';
       hostStatus.textContent = 'Ton ami a quitté.';
@@ -1681,6 +4157,7 @@ function joinGame(code){
   peer.on('open', () => {
     conn = peer.connect(PEER_PREFIX + code, { reliable: true });
     conn.on('open', () => {
+      conn.send({ t:'hi', n: profile.name, s: profile.skin });
       joinStatus.textContent = "Connecté. En attente du lancement par l'hôte.";
       joinStatus.className = 'status ok';
       netEl.textContent = 'Invité';
@@ -1688,10 +4165,28 @@ function joinGame(code){
     conn.on('data', d => {
       if (!d || typeof d !== 'object') return;
       if (d.t === 's') applySnapshot(d);
-      else if (d.t === 'go'){ initAudio(); startMusic(); gameEnded = false; joinStatus.textContent = 'La partie démarre…'; }
+      else if (d.t === 'go'){
+        initAudio();
+        remote.name = cleanName(d.hn);
+        remote.skin = (SKINS.find(x => x.id === d.hs) || SKINS[0]).id;
+        guestZoneR = null;
+        applyMap(d.mp || 'space');
+        applyMode(d.md || 'normal');
+        applyIdentities(2);
+        resetStats();
+        resetGame(2);
+        running = false;
+        hideAllOverlays();
+        showRoulette(d.md || 'normal', () => { startMusic(); });
+        gameEnded = false;
+      }
       else if (d.t === 'end'){
         if (d.g) decodeTerritory(d.g);
         if (d.sc) for (let i = 0; i < scores.length && i < d.sc.length; i++) scores[i] = d.sc[i];
+        if (d.gs && stats[myId]){
+          stats[myId].k = d.gs[0]; stats[myId].c = d.gs[1];
+          stats[myId].m = d.gs[2]; stats[myId].g = d.gs[3];
+        }
         gameEnded = true;
         showScoreboard();
       }
@@ -1713,9 +4208,15 @@ function joinGame(code){
 }
 
 /* ==========================================================================
-   BOUTONS D'ÉCRANS
+   BOUTONS
    ========================================================================== */
 document.getElementById('soloBtn').addEventListener('click', startSolo);
+document.getElementById('helpBtn').addEventListener('click', () => {
+  document.getElementById('helpScreen').classList.remove('hidden');
+});
+document.getElementById('helpClose').addEventListener('click', () => {
+  document.getElementById('helpScreen').classList.add('hidden');
+});
 document.getElementById('hostBtn').addEventListener('click', () => startHosting(false));
 document.getElementById('launchBtn').addEventListener('click', startHostedGame);
 document.getElementById('againBtn').addEventListener('click', () => {
@@ -1728,6 +4229,33 @@ document.getElementById('againBtn').addEventListener('click', () => {
   }
   else startSolo();
 });
+document.getElementById('menuBtn').addEventListener('click', () => {
+  stopMusic(); closePeer();
+  hideAllOverlays();
+  document.getElementById('startScreen').classList.remove('hidden');
+  startAttract();
+});
+document.getElementById('hostBack').addEventListener('click', () => {
+  closePeer();
+  hideAllOverlays();
+  document.getElementById('startScreen').classList.remove('hidden');
+  startAttract();
+});
+document.getElementById('joinBack').addEventListener('click', () => {
+  closePeer();
+  history.replaceState(null, '', location.pathname);
+  hideAllOverlays();
+  document.getElementById('startScreen').classList.remove('hidden');
+  startAttract();
+});
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const url = document.getElementById('hostLink').dataset.url;
+  const code = document.getElementById('hostCode').textContent;
+  const text = url || ('Code de partie : ' + code);
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => {
+    hostStatus.textContent = 'Lien copié.';
+  }).catch(() => {});
+});
 document.getElementById('mute').addEventListener('click', () => {
   muted = !muted;
   document.getElementById('mute').textContent = muted ? '🔇' : '🔊';
@@ -1739,71 +4267,61 @@ document.getElementById('mute').addEventListener('click', () => {
   }
   if (!muted) tone(600, 0.08, 'triangle', 0.3);
 });
-document.getElementById('menuBtn').addEventListener('click', () => {
-  running = false; stopMusic(); closePeer(); mode = 'solo'; myId = 0;
-  hideAllOverlays();
-  document.getElementById('startScreen').classList.remove('hidden');
-});
-document.getElementById('hostBack').addEventListener('click', () => {
-  closePeer();
-  hideAllOverlays();
-  document.getElementById('startScreen').classList.remove('hidden');
-});
-document.getElementById('joinBack').addEventListener('click', () => {
-  closePeer(); mode = 'solo'; myId = 0; running = false;
-  history.replaceState(null, '', location.pathname);
-  hideAllOverlays();
-  document.getElementById('startScreen').classList.remove('hidden');
-});
-document.getElementById('copyBtn').addEventListener('click', () => {
-  const url = document.getElementById('hostLink').dataset.url;
-  const code = document.getElementById('hostCode').textContent;
-  const text = url || ('Code de partie : ' + code);
-  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => {
-    hostStatus.textContent = 'Lien copié.';
-  }).catch(() => {});
-});
 
 /* ==========================================================================
    BOUCLE PRINCIPALE
    ========================================================================== */
 function loop(t){
   requestAnimationFrame(loop);
-  const dt = Math.min(t - lastTime, 200);
+  const dt = Math.min(t - lastTime, 250);
   lastTime = t;
 
   if (running && isHost()){
     acc += dt;
-    while (acc >= STEP_MS){
+    let steps = 0;
+    while (acc >= STEP_MS && steps < 6){
       acc -= STEP_MS;
+      steps++;
       stepWorld();
       if (!running) break;
+      if (mode === 'host' && stepCount % SNAP_EVERY === 0) sendSnapshot();
     }
-    if (mode === 'host') sendSnapshot();
     if (running && now() >= roundEndsAt) endRound();
   }
 
   hudAcc += dt;
-  if (hudAcc > 120){ hudAcc = 0; updateHud(); }
-  updateSkillUI();
+  if (!attract){
+    if (hudAcc > 120){ hudAcc = 0; updateHud(); }
+    updateScoreTick();
+    updateSkillUI();
+  } else if (!document.getElementById('startScreen').classList.contains('hidden')){
+    drawPreview();
+  }
   scheduleMusic();
 
   if (snakes.length){
     const alpha = (mode === 'guest')
-      ? Math.min((now() - lastSnapAt) / STEP_MS, 1)
+      ? Math.min((now() - lastSnapAt) / (STEP_MS * SNAP_EVERY), 1)
       : (running ? Math.min(acc / STEP_MS, 1) : 1);
     render(alpha);
   }
 }
 
+const hudEl = document.getElementById('hud');
+
 buildBar();
-resetGame(1);
+buildSkins();
+refreshMeta();
 
 const params = new URLSearchParams(location.search);
 const roomParam = (params.get('r') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 if (roomParam.length === 8){
+  applyMap(randomMap()); applyIdentities(1); resetStats(); resetGame(1);
   joinGame(roomParam);
-} else if (!peerReady()){
+} else {
+  startAttract();
+}
+if (roomParam.length !== 8 && !peerReady()){
   startStatus.textContent = 'Mode solo uniquement : réseau indisponible.';
 }
 
